@@ -1,0 +1,140 @@
+# depslib dependency file v1.0
+1586731571 source:c:\asteroids\noise\fastnoise.cpp
+	"FastNoise.h"
+	<math.h>
+	<assert.h>
+	<random>
+
+1586731571 c:\asteroids\noise\fastnoise.h
+
+1610659197 source:c:\asteroids\opengl_log.cpp
+	"OpenGl_log.h"
+
+1590948853 c:\asteroids\opengl_log.h
+	<stdio.h>
+	<cstdlib>
+	<iostream>
+	<fstream>
+	<time.h>
+	<stdarg.h>
+	<string.h>
+	<GL/glew.h>
+	<GL/glfw3.h>
+
+1609647557 source:c:\asteroids\opengl_math.cpp
+	"OpenGl_math.h"
+	<stdio.h>
+	<math.h>
+
+1609649734 c:\asteroids\opengl_math.h
+	<fstream>
+	<iostream>
+
+1610353465 source:c:\asteroids\main.cpp
+	"main.h"
+
+1611262722 c:\asteroids\main.h
+	<Windows.h>
+	<stdio.h>
+	<stdlib.h>
+	<cstdlib>
+	<iostream>
+	<fstream>
+	<sstream>
+	<time.h>
+	<chrono>
+	<stdarg.h>
+	<string.h>
+	<ctype.h>
+	<algorithm>
+	<vector>
+	<random>
+	<math.h>
+	<cmath>
+	<array>
+	<locale.h>
+	<cfloat>
+	<openAL/al.h>
+	<openAL/alc.h>
+	<GL/glew.h>
+	<GL/glfw3.h>
+	<GL/glfw3native.h>
+	"AudioFile.h"
+	"Constants.h"
+	"OpenGl_math.h"
+	"OpenGl_log.h"
+	"initialize.h"
+
+1610959362 c:\asteroids\initialize.h
+	"main.h"
+
+1611086548 source:c:\asteroids\shaders.cpp
+	"shaders.h"
+
+1610353246 c:\asteroids\shaders.h
+	"main.h"
+
+1611262567 source:c:\asteroids\application.cpp
+	"application.h"
+
+1609356801 c:\asteroids\application.h
+	"main.h"
+
+1610736567 c:\asteroids\constants.h
+
+1611343965 source:c:\asteroids\initialize.cpp
+	"initialize.h"
+
+1590957825 source:c:\asteroids\threads.cpp
+	"Threads.h"
+
+1590957842 c:\asteroids\threads.h
+	"main.h"
+
+1603742922 c:\asteroids\audiofile.h
+	<iostream>
+	<vector>
+	<cassert>
+	<string>
+	<cstring>
+	<fstream>
+	<unordered_map>
+	<iterator>
+	<algorithm>
+
+1611262642 source:c:\asteroids\text.cpp
+	"Text.h"
+
+1605411325 source:c:\asteroids\npc.cpp
+	"Npc.h"
+
+1605397296 c:\asteroids\npc.h
+	"main.h"
+
+1610660526 c:\asteroids\text.h
+	"main.h"
+
+1606986237 c:\asteroids\physics.h
+	"main.h"
+
+1606945881 source:c:\asteroids\physics.cpp
+	"Physics.h"
+
+1610706730 source:c:\asteroids\render.cpp
+	"Render.h"
+
+1609104361 c:\asteroids\render.h
+	"main.h"
+
+1611086369 source:c:\asteroids\update.cpp
+	"Update.h"
+
+1609539194 c:\asteroids\update.h
+	"main.h"
+
+1611085719 source:c:\asteroids\collisions.cpp
+	"Collisions.h"
+
+1610316564 c:\asteroids\collisions.h
+	"main.h"
+
