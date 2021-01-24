@@ -1,0 +1,29 @@
+#version 450
+
+layout(local_size_x = 128, local_size_y = 1, local_size_z = 1) in;
+
+layout (binding=0) buffer Pos {vec2 pos[];};
+layout (binding=1) buffer Dir {vec2 dir[];};
+layout (binding=2) buffer Angle {float angle[];};
+layout (binding=3) buffer Astep {float anglestep[];};
+layout (binding=4) buffer Al {int alive[];};
+//layout (std140, binding = 1) buffer Destination	{ vec4 DataDestination[]; };		// particle buffer to write into
+
+uniform float elapsed;
+
+void main()
+{
+	// read old data
+	// this is a 1-dimensional calculation because the data is a 1D array (of particles)
+	uint index = gl_GlobalInvocationID.x;  // .y and .z == 1
+        
+        vec2 oldpos = pos[index].xy;
+        oldpos+= dir[index].xy*elapsed;
+        pos[index].xy = oldpos;
+          
+        float oldangle = angle[index].x;
+        oldangle+= anglestep[index].x;
+        angle[index].x = oldangle;
+
+	
+}

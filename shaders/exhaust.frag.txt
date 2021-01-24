@@ -1,0 +1,18 @@
+#version 410
+
+uniform float seed;
+in vec4 colour;
+out vec4 frag_colour;
+
+const float PHI = 1.61803398874989484820459; // Golden Ratio
+
+float noise(vec2 xy, float nseed)
+{
+  return fract(tan(distance(xy*PHI, xy)*nseed)*xy.x); 
+}
+
+void main() 
+{
+  vec4 rgba = vec4(colour.rgb * noise(gl_FragCoord.xy, seed), 1.0);
+  frag_colour = rgba;
+}

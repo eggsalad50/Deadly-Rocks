@@ -1,0 +1,28 @@
+#version 410
+
+layout(location=0) in vec2 vertex;
+layout(location=1) in vec2 pos;
+layout(location=2) in vec3 color;
+layout(location=3) in float angle;
+
+uniform mat4 proj;
+uniform mat4 matrix;
+
+uniform float depth;
+uniform float radius;
+uniform float xratio;
+uniform float yratio;
+
+out vec3 colour;
+
+void main()
+{
+  colour = color;
+  float x = vertex.x*cos(angle) - vertex.y*sin(angle);
+  float y = vertex.x*sin(angle) + vertex.y*cos(angle);
+  x*= radius;
+  y*= radius;
+  vec2 fpos = vec2(x*xratio, y*yratio);
+  fpos+= vec2(pos.x*xratio, pos.y*yratio);
+  gl_Position = proj * matrix * vec4(fpos, depth, 1.0);
+}

@@ -1,0 +1,53 @@
+DEADLY ROCKS
+F1 to start
+F2 Settings
+Programmed by Joel Patterson
+Programming Tools
+GNU C++
+OpenGL 4.6
+GLFW 3.2
+OpenAL 1.1
+Code::Blocks 17.12
+Ranks you can achieve
+SR
+Spaceman Recruit
+SB
+Spaceman Basic
+Smn
+Spaceman
+S1C
+Spaceman First Class
+SSrS
+Senior Spaceman or Sergeant
+SSgt
+Staff Sergeant
+TSgt
+Technical Sergeant
+MSgt
+Master Sergeant
+SMSgt
+Senior Master Sergeant
+CMSgt
+Chief Master Sergeant
+2d Lt
+Second Lieutenant
+1st Lt
+First Lieutenant
+Capt
+Captain
+Maj
+Major
+Lt Col
+Lieutenant Colonel
+Col
+Colonel
+Br Gen
+Brigadier General
+Mj Gen
+Major General
+Lt Gen
+Lieutenant General
+Gen
+General Space Force Chief of Staff
+GAME OVER
+F1 to play again

@@ -1,0 +1,49 @@
+#version 450
+
+layout(local_size_x = 128, local_size_y = 1, local_size_z = 1) in;
+
+layout (std140, binding = 0) buffer Source		{ vec4 DataSource[]; };			// particle buffer to read from
+layout (std140, binding = 1) buffer Destination	{ vec4 DataDestination[]; };		// particle buffer to write into
+
+
+const vec3 gravity = vec3( 0, -9.81, 0);
+const float timestep = 0.016;
+
+
+void main()
+{
+	// read old data
+	// this is a 1-dimensional calculation because the data is a 1D array (of particles)
+	uint index = gl_GlobalInvocationID.x;  // .y and .z == 1
+
+	vec4 data0 = DataSource[3 * index + 0];
+	vec4 data1 = DataSource[3 * index + 1];
+	vec4 data2 = DataSource[3 * index + 2];
+
+	vec3 position = data0.xyz;
+	float lifetime = data0.w;
+	vec3 velocity = data1.xyz;
+	float unused = data1.w;
+	vec4 color = data2;
+
+	// calculate new data
+	//vec3 accelleration = gravity;
+	vec3 accelleration = vec3(0, 0, 0);
+
+	vec3 position_new =		position + velocity * timestep;
+	float lifetime_new =		lifetime - timestep;
+	vec3 velocity_new =		velocity + accelleration * timestep;
+	vec4 color_new =		color;
+
+	if (position_new.x < -1) { position_new.x = -1; velocity_new.x *= -0.9; }
+	if (position_new.y < -1) { position_new.y = -1; velocity_new.y *= -0.9; }
+	if (position_new.z < -1) { position_new.z = -1; velocity_new.z *= -0.9; }
+	if (position_new.x > +1) { position_new.x = +1; velocity_new.x *= -0.9; }
+	if (position_new.y > +1) { position_new.y = +1; velocity_new.y *= -0.9; }
+	if (position_new.z > +1) { position_new.z = +1; velocity_new.z *= -0.9; }
+
+	// write new data
+	DataDestination[3 * index + 0] = vec4(position_new, lifetime_new);
+	DataDestination[3 * index + 1] = vec4(velocity_new, 0);
+	DataDestination[3 * index + 2] = color_new;
+}

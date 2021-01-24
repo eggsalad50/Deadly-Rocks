@@ -1,0 +1,32 @@
+// Data for rock shapes
+// This data is used if "Rock_instancing" is disabled in the settings file
+// Also used for collision detection.
+// First vertex is the pivot point for the OpenGL GL_TRIANGLE_FAN drawing command
+// The second and last vertex should be the same.
+
+Start_data
+0.0, 0.0
+0.0, -1.0
+-0.5, -0.6
+-1.0, -0.4
+-1.0, 0.4
+-0.4, 0.4
+0.4, 1.0
+0.9, 0.2
+0.7, -0.2
+0.0, -1.0
+99.0, 99.0
+// Next Rock
+0.0, 0.0
+0.0, -0.8
+-0.4, -1.0
+-0.5, -0.2
+-1.0, 0.0
+0.0, 1.0
+0.8, 0.5
+0.5, -1.0
+0.0, -0.8
+99.0, 99.0
+// Next Rock
+9999.0, 9999.0
+

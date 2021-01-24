@@ -1,0 +1,17 @@
+#version 410
+
+layout(location=0) in vec2 vertex_position;
+
+uniform mat4 proj;
+uniform mat4 matrix;
+
+uniform vec4 color;
+uniform float depth;
+
+out vec4 colour;
+
+void main()
+{
+  colour = color;
+  gl_Position = proj * matrix * vec4(vertex_position, depth, 1.0);
+}
