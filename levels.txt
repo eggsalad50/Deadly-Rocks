@@ -1,0 +1,43 @@
+// Data for determining amount and type of rocks, enemy ships and weapons for each level
+// The first number is the level number. 
+// If you skip a level or levels, the levels inbetween will be the same.
+// A positive number goes right after the code which determines the amount for the level.
+// Code amount will remain the same if it's not redeclared in the next levels.
+// Level numbers must increase, otherwise you'll get an error message.
+// Don't add blank lines beyond the last level or you'll get an error message.
+// 
+// Sr = Standard rock
+// Fr = Fast rock
+// Br = Brittle rock
+// Hr = Hard rock
+//
+// En = # of enemyships at the same time
+// Er = Enemyship range;           example "Er 0 2"  Max is 7
+// Bb = Number of bullets per deploy
+// Dr = Number of cluster drones
+// Ds = Top base drone speed       example "Ds 500.0"
+// Da = Drone acceleration range;  example "Da 0.2 0.3"
+//   
+1) Sr 2 Bb 1 En 1 Er 0 0  Dr 1  Ds 200.0  Da 0.2 0.3
+2) Sr 3
+4)      Br 1              Dr 2
+6) Sr 4 Br 0                    Ds 220.0
+7)      Hr 1
+8)      Hr 0 Br 2
+9) Sr 5 Hr 1 Br 0         Dr 3            Da 0.22 0.32
+10) Fr 1
+11) Fr 0
+12)               Er 0 1 En 2
+15) Sr 6  Fr 0 Bb 2
+16)                             Ds 240    Da 0.25 0.35
+17) Sr 0  Hr 3    Er 1 2
+18) Sr 6  Hr 0  Fr 1
+20) Sr 5        Fr 2
+21) Sr 7        Fr 0
+23) Sr 0  Br 7                  Ds 260    Da 0.25  0.40
+24) Sr 7  Br 1
+25)       Br 0
+28) Sr 0        Fr 3
+29) Sr 8        Fr 1
+30)             Fr 0     En 3
+31)                      En 2
