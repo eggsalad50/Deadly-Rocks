@@ -109,15 +109,17 @@ void Demo_text()
      Set_textsize(30, 40);
     Draw_phrase(F1_TO_START, 17.3, g_win_height - 6*row_size, 0.5, tcolor);    // F1 to start
     Set_textsize(30, 40);
-    Draw_phrase(F2_SETTINGS, 17.0, g_win_height - 8*row_size, 0.5, tcolor);     // F2 settings
+    Draw_phrase(F2_SETTINGS, 15.0, g_win_height - 7.8*row_size, 0.5, tcolor);     // F2 settings
+    Draw_phrase(F3_MISC_SETTINGS, 15.0, g_win_height - 9.6*row_size, 0.5, tcolor);
     glBindVertexArray(0);
 
-    if (controls) Controls_text(13.0);
+    if (controls) Controls_text(15.0);
+    else if (miscell) Misc_settings_text(15.0);
     else
     {
-        if (hiscore_timer < CREDITS_ON && hiscore_timer > CREDITS_OFF) Draw_credits(10);
-        if (hiscore_timer < HI_SCORE_ON && hiscore_timer > HI_SCORE_OFF) Draw_scores_text(10);
-        if (hiscore_timer < RANK_ON && hiscore_timer > RANK_OFF) Draw_ranks(10);
+        if (hiscore_timer < CREDITS_ON && hiscore_timer > CREDITS_OFF) Draw_credits(13);
+        if (hiscore_timer < HI_SCORE_ON && hiscore_timer > HI_SCORE_OFF) Draw_scores_text(13);
+        if (hiscore_timer < RANK_ON && hiscore_timer > RANK_OFF) Draw_ranks(13);
     }
 }
 
@@ -204,7 +206,7 @@ void Controls_text(float row)
     vec4 hcolor = vec4 (GOLD, 1.0);
     vec4 color;
     char c[50];
-    float lmargin = 26.0;
+    float lmargin = 23.0;
     Set_textsize(40, 60);
     string controller;
     string text;
@@ -358,17 +360,97 @@ void Controls_text(float row)
 
     if (settings_row == 9) color = hcolor;
     else color = tcolor;
+    row+= 2.0;
+    if (!Vsync)
+    {
+        sprintf(c,"Sync to monitor: Disabled\n");
+    }
+    else
+    {
+        sprintf(c,"Sync to monitor: Enabled\n");
+    }
+    Draw_textrow(c, lmargin, g_win_height - row*row_size, 0.5, color);
+
+    if (settings_row == 10) color = hcolor;
+    else color = tcolor;
     sprintf(c,"Resolution: %s\n", reso_text.c_str());
     row+=2.0;
     Draw_textrow(c, lmargin, g_win_height - row*row_size, 0.5, color);
 
-    if (settings_row == 10) color = hcolor;
+    if (settings_row == 11) color = hcolor;
     else color = tcolor;
     sprintf(c,"Sound Volume: %i\%\n", (int) (Sound_volume*100.0));
     row+=2.0;
     Draw_textrow(c, lmargin, g_win_height - row*row_size, 0.5, color);
 
     glBindVertexArray(0);
+}
+
+void Misc_settings_text(float row)
+{
+    vec4 tcolor = vec4 (WHITE, 1.0);
+    vec4 hcolor = vec4 (GOLD, 1.0);
+    vec4 color;
+    char c[50];
+    float lmargin = 23.0;
+    Set_textsize(40, 60);
+
+    glUseProgram(sh_2Dtext.program);
+    glBindVertexArray(sh_2Dtext.vao);
+
+    if (misc_row == 0) color = hcolor;
+    else color = tcolor;
+    sprintf(c,"Ship Inventory: %i\n", Start_ships);
+    Draw_textrow(c, lmargin, g_win_height - row*row_size, 0.5, color);
+
+    if (misc_row == 1) color = hcolor;
+    else color = tcolor;
+    row+= 1.5;
+    sprintf(c,"Starting level: %i\n", Starting_level);
+    Draw_textrow(c, lmargin, g_win_height - row*row_size, 0.5, color);
+
+    if (misc_row == 2) color = hcolor;
+    else color = tcolor;
+    row+= 1.5;
+    sprintf(c,"Bonus ship at %i  points\n", Extra_ship_points);
+    Draw_textrow(c, lmargin, g_win_height - row*row_size, 0.5, color);
+
+    if (misc_row == 3) color = hcolor;
+    else color = tcolor;
+    row+= 1.5;
+    if (!Player_hit_player) sprintf(c,"Teamwork: True\n");
+    else sprintf(c, "Teamwork: False\n");
+    Draw_textrow(c, lmargin, g_win_height - row*row_size, 0.5, color);
+
+    if (misc_row == 4) color = hcolor;
+    else color = tcolor;
+    row+= 1.5;
+    sprintf(c,"Shield life: %0.1f seconds\n", Shield_life);
+    Draw_textrow(c, lmargin, g_win_height - row*row_size, 0.5, color);
+
+    if (misc_row == 5) color = hcolor;
+    else color = tcolor;
+    row+= 1.5;
+    sprintf(c,"Bomb recharge time: %0.1f seconds\n", Bomb_delay);
+    Draw_textrow(c, lmargin, g_win_height - row*row_size, 0.5, color);
+
+    if (misc_row == 6) color = hcolor;
+    else color = tcolor;
+    row+= 1.5;
+    sprintf(c,"Line width: %0.1f\n", Line_width);
+    Draw_textrow(c, lmargin, g_win_height - row*row_size, 0.5, color);
+
+    if (misc_row == 7) color = hcolor;
+    else color = tcolor;
+    row+= 1.5;
+    sprintf(c,"Rock speed factor: %0.1f\n", Rock_speed_factor);
+    Draw_textrow(c, lmargin, g_win_height - row*row_size, 0.5, color);
+
+    if (misc_row == 8) color = hcolor;
+    else color = tcolor;
+    row+= 1.5;
+    sprintf(c,"Enemy speed factor: %0.1f\n", Enemy_speed_factor);
+    Draw_textrow(c, lmargin, g_win_height - row*row_size, 0.5, color);
 }
 
 void Draw_credits(float row)
@@ -535,21 +617,23 @@ void Game_over_text()
     Set_textsize(30, 40);
 
     Draw_phrase(PLAY_AGAIN, 15.3, g_win_height - 8*row_size, 0.5, tcolor);
-    Draw_phrase(F2_SETTINGS, 16.7, g_win_height - 10*row_size, 0.5, tcolor);
+    Draw_phrase(F2_SETTINGS, 15.0, g_win_height - 9.8*row_size, 0.5, tcolor);
+    Draw_phrase(F3_MISC_SETTINGS, 15.0, g_win_height - 11.6*row_size, 0.5, tcolor);
     glBindVertexArray(0);
 
     if (new_high_score)
     {
-        Enter_player_name(13);
+        Enter_player_name(15);
     }
     else
     {
-        if (controls) Controls_text(15.5);
+        if (controls) Controls_text(17.5);
+        else if (miscell) Misc_settings_text(17.5);
         else
         {
-            if (hiscore_timer < CREDITS_ON && hiscore_timer > CREDITS_OFF) Draw_credits(12.5);
-            if (hiscore_timer < HI_SCORE_ON && hiscore_timer > HI_SCORE_OFF) Draw_scores_text(12.5);
-            if (hiscore_timer < RANK_ON && hiscore_timer > RANK_OFF) Draw_ranks(12.5);
+            if (hiscore_timer < CREDITS_ON && hiscore_timer > CREDITS_OFF) Draw_credits(13.5);
+            if (hiscore_timer < HI_SCORE_ON && hiscore_timer > HI_SCORE_OFF) Draw_scores_text(13.5);
+            if (hiscore_timer < RANK_ON && hiscore_timer > RANK_OFF) Draw_ranks(13.5);
         }
     }
 }
@@ -664,7 +748,7 @@ void glfw_keyboard(GLFWwindow* window, int key, int scancode, int action, int mo
 {
     if (action == GLFW_PRESS)
     {
-        if (key == GLFW_KEY_F3)
+        if (key == GLFW_KEY_F6)
         {
             if (!cpu_load_flag) cpu_load_flag = true;
             else cpu_load_flag = false;
@@ -679,7 +763,7 @@ void glfw_keyboard(GLFWwindow* window, int key, int scancode, int action, int mo
                 int x = (int) ((float) vmode->width*0.125);
                 int y = (int) ((float) vmode->height*0.125);
                 glfwSetWindowMonitor(window, NULL, x, y, g_win_width, g_win_height, GLFW_DONT_CARE);
-                glfwSwapInterval(1);
+                glfwSwapInterval(Vsync);
             }
             else
             {
@@ -687,7 +771,7 @@ void glfw_keyboard(GLFWwindow* window, int key, int scancode, int action, int mo
                 glfwSetWindowMonitor(window, glfwGetPrimaryMonitor(), 0, 0, vmode->width, vmode->height, GLFW_DONT_CARE);
                 g_win_width = vmode->width;
                 g_win_height = vmode->height;
-                glfwSwapInterval(1);
+                glfwSwapInterval(Vsync);
             }
 
         }
@@ -712,8 +796,21 @@ void glfw_keyboard(GLFWwindow* window, int key, int scancode, int action, int mo
             }
             else if (key == GLFW_KEY_F2)        // Enable or disable settings text
             {
-                if (!controls) controls = true;
+                if (!controls)
+                {
+                    controls = true;
+                    miscell = false;
+                }
                 else controls = false;
+            }
+            else if (key == GLFW_KEY_F3)
+            {
+                if (!miscell)
+                {
+                    miscell = true;
+                    controls = false;
+                }
+                else miscell = false;
             }
             else if (controls)                 // In settings mode?
             {
@@ -721,12 +818,12 @@ void glfw_keyboard(GLFWwindow* window, int key, int scancode, int action, int mo
                 if (key == GLFW_KEY_DOWN)
                 {
                     settings_row++;
-                    if (settings_row>10) settings_row = 0;
+                    if (settings_row>11) settings_row = 0;
                 }
                 else if (key == GLFW_KEY_UP)
                 {
                     settings_row--;
-                    if (settings_row<0) settings_row = 10;
+                    if (settings_row<0) settings_row = 11;
                 }
                 else
                 {
@@ -810,6 +907,15 @@ void glfw_keyboard(GLFWwindow* window, int key, int scancode, int action, int mo
                     }
                     if (settings_row == 9)
                     {
+                        if (key == GLFW_KEY_RIGHT || key == GLFW_KEY_LEFT)
+                        {
+                            Vsync++;
+                            if (Vsync>1) Vsync = 0;
+                            glfwSwapInterval(Vsync);
+                        }
+                    }
+                    if (settings_row == 10)
+                    {
                         if (key == GLFW_KEY_RIGHT) resolution++;
                         if (key == GLFW_KEY_LEFT) resolution--;
                         if (resolution>4) resolution = 0;
@@ -860,7 +966,7 @@ void glfw_keyboard(GLFWwindow* window, int key, int scancode, int action, int mo
                             pre_ebullet_life = pre_Xmax*1.0;
                         }
                     }
-                    if (settings_row == 10)
+                    if (settings_row == 11)
                     {
                         if (key == GLFW_KEY_RIGHT) Sound_volume+=0.05;
                         if (key == GLFW_KEY_LEFT) Sound_volume-=0.05;
@@ -868,6 +974,109 @@ void glfw_keyboard(GLFWwindow* window, int key, int scancode, int action, int mo
                         if (Sound_volume<0.0) Sound_volume = 1.0;
                     }
                 }
+            }
+            else if (miscell)
+            {
+                if (key == GLFW_KEY_UP)
+                {
+                    misc_row--;
+                    if (misc_row<0) misc_row = 8;
+                }
+                if (key == GLFW_KEY_DOWN)
+                {
+                    misc_row++;
+                    if (misc_row>8) misc_row = 0;
+                }
+                if (misc_row == 0)
+                {
+                    if (key == GLFW_KEY_RIGHT) Start_ships++;
+                    if (key == GLFW_KEY_LEFT)
+                    {
+                        Start_ships--;
+                        if (Start_ships<0) Start_ships = 0;
+                    }
+                }
+                if (misc_row == 1)
+                {
+                    if (key == GLFW_KEY_RIGHT)
+                    {
+                        Starting_level++;
+                        if (Starting_level>=levels.size()) Starting_level = 1;
+                    }
+                    if (key == GLFW_KEY_LEFT)
+                    {
+                        Starting_level--;
+                        if (Starting_level<1) Starting_level = levels.size()-1;
+                    }
+                }
+                if (misc_row == 2)
+                {
+                    if (key == GLFW_KEY_RIGHT) Extra_ship_points+=100;
+                    if (key == GLFW_KEY_LEFT)
+                    {
+                        Extra_ship_points-=100;
+                        if (Extra_ship_points<100) Extra_ship_points = 100;
+                    }
+                }
+                if (misc_row == 3)
+                {
+                    if (key == GLFW_KEY_RIGHT || key == GLFW_KEY_LEFT)
+                    {
+                        Player_hit_player++;
+                        if (Player_hit_player>1) Player_hit_player = 0;
+                    }
+                }
+                if (misc_row == 4)
+                {
+                    if (key == GLFW_KEY_RIGHT) Shield_life+= 1.0;
+                    if (key == GLFW_KEY_LEFT)
+                    {
+                        Shield_life-=1.0;
+                        if (Shield_life<1.0) Shield_life = 1.0;
+                    }
+                }
+                if (misc_row == 5)
+                {
+                    if (key == GLFW_KEY_RIGHT) Bomb_delay+= 1.0;
+                    if (key == GLFW_KEY_LEFT)
+                    {
+                        Bomb_delay-=1.0;
+                        if (Bomb_delay<1.0) Bomb_delay = 1.0;
+                    }
+                }
+                if (misc_row == 6)
+                {
+                    if (key == GLFW_KEY_RIGHT)
+                    {
+                        Line_width+= 0.5;
+                        glLineWidth(Line_width);
+                    }
+                    if (key == GLFW_KEY_LEFT)
+                    {
+                        Line_width-=0.5;
+                        if (Line_width<1.0) Line_width = 1.0;
+                        glLineWidth(Line_width);
+                    }
+                }
+                if (misc_row == 7)
+                {
+                    if (key == GLFW_KEY_RIGHT) Rock_speed_factor+= 10.0;
+                    if (key == GLFW_KEY_LEFT)
+                    {
+                        Rock_speed_factor-=10.0;
+                        if (Rock_speed_factor<10.0) Rock_speed_factor = 10.0;
+                    }
+                }
+                if (misc_row == 8)
+                {
+                    if (key == GLFW_KEY_RIGHT) Enemy_speed_factor+= 10.0;
+                    if (key == GLFW_KEY_LEFT)
+                    {
+                        Enemy_speed_factor-=10.0;
+                        if (Enemy_speed_factor<10.0) Enemy_speed_factor = 10.0;
+                    }
+                }
+
             }
         }
         else
