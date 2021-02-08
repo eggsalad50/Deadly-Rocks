@@ -1452,7 +1452,7 @@ bool Get_scores()
     {
         fprintf(stderr, "\nWarning: \"Scores.txt\" not found\n");
         fprintf(Debug, "\nWarning: \"Scores.txt\" not found\n");
-        return false;
+        return true;
     }
 
     fscanf(Score, "%s %i", &name, &points);
