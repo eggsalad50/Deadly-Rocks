@@ -10,5 +10,6 @@ void Draw_shipbullets();
 void Draw_ship_exploding();
 void Draw_impacts();
 void Draw_rock_explosions();
+void Draw_drone_explosions();
 
 #endif // RENDER_H_INCLUDED

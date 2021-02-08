@@ -13,7 +13,6 @@ void clear_errors()
 
 int log_errors()
 {
-     //Debug=fopen(DEBUG_FILE,"a");
     int cnt = 0;
     while ((error = glGetError()) != GL_NO_ERROR)
     {
@@ -37,7 +36,6 @@ int log_errors()
             case GL_CONTEXT_LOST: fprintf(stderr,"Context Lost");
         }
     }
-     //fclose(Debug);
     return cnt;
 }
 
@@ -49,8 +47,6 @@ void glfw_window_size_callback (GLFWwindow* window, int width, int height)
     float aspect = (float) width / (float) height;
     x_ratio = (float) g_win_width / Xmax;
     y_ratio = (float) g_win_height / Ymax;
-    //cam.hview_field = atan( (float) width / (height / tan(cam.view_field*TO_RADIANS)));
-    //cam.proj_mat = perspective(cam.view_field, aspect, cam.near_plane, cam.far_plane);
 
     sh_pship.proj_mat = ortho(0.0f, width, 0.0f, height, -1.0, 1.0);
     glUseProgram(sh_pship.program);
@@ -81,9 +77,10 @@ void glfw_window_size_callback (GLFWwindow* window, int width, int height)
     glUseProgram(sh_rexplode.program);
     glUniformMatrix4fv(sh_rexplode.proj_mat_location, 1, GL_FALSE, sh_rexplode.proj_mat.m);
 
-    sh_shipexplode.proj_mat = ortho(0.0f, g_win_width, 0.0f, g_win_height, -1.0, 1.0);
-    glUseProgram(sh_shipexplode.program);
-    glUniformMatrix4fv(sh_shipexplode.proj_mat_location, 1, GL_FALSE, sh_shipexplode.proj_mat.m);
+    sh_shipexplode2.proj_mat = ortho(0.0f, g_win_width, 0.0f, g_win_height, -1.0, 1.0);
+    glUseProgram(sh_shipexplode2.program);
+    glUniformMatrix4fv(sh_shipexplode2.proj_mat_location, 1, GL_FALSE, sh_shipexplode2.proj_mat.m);
+
 
     sh_impact.proj_mat = ortho(0.0f, g_win_width, 0.0f, g_win_height, -1.0, 1.0);
     glUseProgram(sh_impact.program);
@@ -104,6 +101,10 @@ void glfw_window_size_callback (GLFWwindow* window, int width, int height)
     sh_drone.proj_mat = ortho(0.0f, g_win_width, 0.0f, g_win_height, -1.0, 1.0);
     glUseProgram(sh_drone.program);
     glUniformMatrix4fv (sh_drone.proj_mat_location, 1, GL_FALSE, sh_drone.proj_mat.m);
+
+    sh_drexplode.proj_mat = ortho(0.0f, g_win_width, 0.0f, g_win_height, -1.0, 1.0);
+    glUseProgram(sh_drexplode.program);
+    glUniformMatrix4fv (sh_drexplode.proj_mat_location, 1, GL_FALSE, sh_drexplode.proj_mat.m);
 }
 
 void glfw_frambuffer_resize_callback (GLFWwindow* window, int width, int height)
@@ -136,22 +137,34 @@ int main()
     if (!glfwInit())
     {
        fprintf(stderr, "ERROR: could not start GLFW3\n");
+
+       Debug=fopen(DEBUG_FILE,"a");
+       fprintf(stderr, "ERROR: could not start GLFW3\n");
+       fclose(Debug);
        return false;
     }
+
+    if (!Get_settings()) return false;    // Load in values from settings file
 
     glfwWindowHint (GLFW_SAMPLES, 4);
     vmode = glfwGetVideoMode(glfwGetPrimaryMonitor());         // Get current monitor mode
 
+    // Position the OpenGL window on desktop
     g_win_width = (int) ((float) vmode->width*0.75);
     g_win_height = (int) ((float) vmode->height*0.75);
     int x = (int) ((float) vmode->width*0.125);
     int y = (int) ((float) vmode->height*0.125);
     fullscreen = false;
-    //window=glfwCreateWindow (g_win_width, g_win_height, "Deadly rocks", glfwGetPrimaryMonitor(), NULL);
+
     window=glfwCreateWindow (g_win_width, g_win_height, "Deadly rocks", NULL, NULL);
     if (!window)
     {
        fprintf(stderr, "ERROR: could not open window with GLFW3\n");
+
+       Debug=fopen(DEBUG_FILE,"a");
+       fprintf(Debug, "ERROR: could not open window with GLFW3\n");
+       fclose(Debug);
+
        glfwTerminate();
        return false;
     }
@@ -177,10 +190,22 @@ int main()
     printf("Renderer: %s\n", renderer);
     printf("OpenGL version supported %s\n\n", version);
 
-    //Speed_test();
-    if (!Get_settings()) return false;    // Load in values from settings file
+    Debug=fopen(DEBUG_FILE,"a");
+    fprintf(Debug, "Renderer: %s\n", renderer);
+    fprintf(Debug, "OpenGL version supported %s\n\n", version);
+    fclose(Debug);
+
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glViewport(0, 0, g_win_width, g_win_height);
+    glfwSwapBuffers(window);
+
     if (!Get_all_shaders()) return false;
-    if (!Initialize()) return false;
+    if (!Initialize())
+    {
+        fclose(Debug);
+        return false;
+    }
+    fclose(Debug);
 
     /// *********** FRAME RATE SYNC **************
     glfwSwapInterval(Vsync);  //Turn on or off Vsync (0=off, 1=on)

@@ -221,11 +221,16 @@ bool Ship_hit_drone(int sh, int index)
             if (Precise_shieldship_hit_drone(sh, index))
             {
                 drones[index].status = false;
-                alSourcef(ship_explode_sourceid[ship_snd_pntr], AL_GAIN, Sound_volume);
-                alSourcePlay(ship_explode_sourceid[ship_snd_pntr]);
-                ship_snd_pntr++;
-                if (ship_snd_pntr>=MAX_SE_EXPLODE) ship_snd_pntr=0;
-                Start_ship_explosion(DRONE, index, -1, -1, drones[index].xpos, drones[index].ypos);
+
+                uniform_real_distribution<float>spitch(0.5, 1.0);
+                alSourcef(drexplode_sourceid[drexplode_pntr], AL_PITCH, spitch(rndrock));
+                alSourcef(drexplode_sourceid[drexplode_pntr], AL_GAIN, Sound_volume);
+                alSourcePlay(drexplode_sourceid[drexplode_pntr]);
+                drexplode_pntr++;
+                if (drexplode_pntr>=MAX_DR_EXPLODE) drexplode_pntr = 0;
+
+                //Start_ship_explosion(DRONE, index, -1, -1, drones[index].xpos, drones[index].ypos);
+                Start_drexplode(index);
 
                 // Explosion knocks your ship away
                 float ximpact = drones[index].xpos - pship[sh].xpos;
@@ -263,12 +268,21 @@ bool Ship_hit_drone(int sh, int index)
                 drones[index].status = false;
                 alSourceStop(thrust_sourceid[sh]);
                 sound_thrust_flag[sh] = false;
+
                 alSourcef(ship_explode_sourceid[ship_snd_pntr], AL_GAIN, Sound_volume);
                 alSourcePlay(ship_explode_sourceid[ship_snd_pntr]);
                 ship_snd_pntr++;
                 if (ship_snd_pntr>=MAX_SE_EXPLODE) ship_snd_pntr=0;
+
+                uniform_real_distribution<float>spitch(0.5, 1.0);
+                alSourcef(drexplode_sourceid[drexplode_pntr], AL_PITCH, spitch(rndrock));
+                alSourcef(drexplode_sourceid[drexplode_pntr], AL_GAIN, Sound_volume*0.5);
+                alSourcePlay(drexplode_sourceid[drexplode_pntr]);
+                drexplode_pntr++;
+                if (drexplode_pntr>=MAX_DR_EXPLODE) drexplode_pntr = 0;
+
                 Start_ship_explosion(SHIP, sh, -1, -1, pship[sh].xpos, pship[sh].ypos);
-                Start_ship_explosion(DRONE, index, -1, -1, drones[index].xpos, drones[index].ypos);
+                Start_drexplode(index);
 
                 int id = drones[index].cluster;
                 if (id>=0)
@@ -308,7 +322,7 @@ bool Ship_hit_ship(int sh, int index)
                 pship[sh].ships--;
                 alSourceStop(thrust_sourceid[sh]);
                 sound_thrust_flag[sh] = false;
-                alSourcef(ship_explode_sourceid[ship_snd_pntr], AL_GAIN, Sound_volume);
+                alSourcef(ship_explode_sourceid[ship_snd_pntr], AL_GAIN, Sound_volume*0.5);
                 alSourcePlay(ship_explode_sourceid[ship_snd_pntr]);
                 ship_snd_pntr++;
                 if (ship_snd_pntr>=MAX_SE_EXPLODE) ship_snd_pntr=0;
@@ -1068,12 +1082,15 @@ bool Bullet_drone_collision(int bl, int d_index, circle_line *cl)
                         pship[sh].ships++;
                         pship[sh].add_score-= Extra_ship_points;
                     }
-                    alSourcef(ship_explode_sourceid[ship_snd_pntr], AL_GAIN, Sound_volume);
-                    alSourcePlay(ship_explode_sourceid[ship_snd_pntr]);
-                    ship_snd_pntr++;
-                    if (ship_snd_pntr>=MAX_SE_EXPLODE) ship_snd_pntr = 0;
 
-                    Start_ship_explosion(DRONE, d_index, -1, -1, drones[d_index].xpos, drones[d_index].ypos);
+                    uniform_real_distribution<float>spitch(0.5, 1.0);
+                    alSourcef(drexplode_sourceid[drexplode_pntr], AL_PITCH, spitch(rndrock));
+                    alSourcef(drexplode_sourceid[drexplode_pntr], AL_GAIN, Sound_volume*0.5);
+                    alSourcePlay(drexplode_sourceid[drexplode_pntr]);
+                    drexplode_pntr++;
+                    if (drexplode_pntr>=MAX_DR_EXPLODE) drexplode_pntr = 0;
+
+                    Start_drexplode(d_index);
                     return true;
                 }
             }
@@ -1550,12 +1567,13 @@ bool Bbullet_drone_collision(int bl, int d_index, circle_line *cl)
                     drones[d_index].status = false;
                     bbullets[bl].status = false;
 
-                    alSourcef(ship_explode_sourceid[ship_snd_pntr], AL_GAIN, Sound_volume);
-                    alSourcePlay(ship_explode_sourceid[ship_snd_pntr]);
-                    ship_snd_pntr++;
-                    if (ship_snd_pntr>=MAX_SE_EXPLODE) ship_snd_pntr = 0;
-
-                    Start_ship_explosion(DRONE, d_index, -1, -1, drones[d_index].xpos, drones[d_index].ypos);
+                    uniform_real_distribution<float>spitch(0.5, 1.0);
+                    alSourcef(drexplode_sourceid[drexplode_pntr], AL_PITCH, spitch(rndrock));
+                    alSourcef(drexplode_sourceid[drexplode_pntr], AL_GAIN, Sound_volume*0.5);
+                    alSourcePlay(drexplode_sourceid[drexplode_pntr]);
+                    drexplode_pntr++;
+                    if (drexplode_pntr>=MAX_DR_EXPLODE) drexplode_pntr = 0;
+                    Start_drexplode(d_index);
                     return true;
                 }
             }

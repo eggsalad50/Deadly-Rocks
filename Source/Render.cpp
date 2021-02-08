@@ -2,7 +2,9 @@
 
 void Draw_everything()
 {
+    glDepthFunc (GL_NOTEQUAL);    // Don't draw if there's already a rock pixel drawn.
     Draw_rocks();
+    glDepthFunc (GL_ALWAYS);      // Draw remaining stuff over rocks
     Draw_ships();
 
     glEnable(GL_BLEND);
@@ -12,6 +14,7 @@ void Draw_everything()
     Draw_ship_exploding();
     if (impact_cnt>0) Draw_impacts();
     if (explosion_cnt>0) Draw_rock_explosions();
+    if (!drexplode.empty()) Draw_drone_explosions();
 
     glDisable(GL_BLEND);
 }
@@ -80,8 +83,8 @@ void Draw_rocks()
             glBindBuffer(GL_ARRAY_BUFFER, sh_rocks2.color_vbo);
             glBufferSubData(GL_ARRAY_BUFFER, 0, rocks.size() * sizeof(vec3), sh_rocks2.color);
         }
-        glUniform1f(sh_rocks2.xratio_location, x_ratio);
-        glUniform1f(sh_rocks2.yratio_location, y_ratio);
+        vec2 sratio = vec2(x_ratio, y_ratio);
+        glUniform2fv(sh_rocks2.ratio_location, 1, sratio.v);
         if (Solid_rock)
         {
             glDrawArraysInstanced(GL_TRIANGLE_FAN, 0, 26, rocks.size());
@@ -169,40 +172,7 @@ void Draw_ships()
         glDrawArraysInstanced(GL_LINES, 0, enemy_shapes[cluster_index].size(), cnt);
         glBindVertexArray(0);
     }
-    /*
-    color = vec4(WHITE, 1.0);
-    glUniform4fv(sh_pship.color_location, 1, color.v);
 
-    for (int lp=0; lp<drones.size(); lp++)
-    {
-        if (drones[lp].status)
-        {
-            if (drones[lp].cluster>=0)
-            {
-                eship = rotate_uvw(identity_mat4(), drones[lp].angle, vec3d(0, 0, 1.0));
-                eship = scale(eship, vec3(Drone_size*x_ratio, Drone_size*y_ratio, 0));
-                int cl = drones[lp].cluster;
-                float x = cluster[cl].xpos + drones[lp].x_offset;
-                float y = cluster[cl].ypos + drones[lp].y_offset;
-                eship = translate(eship, vec3(x*x_ratio, y*y_ratio, 0));
-                glUniformMatrix4fv(sh_pship.matrix_mat_location, 1, false, eship.m);                    // Send matrix to shader
-                glDrawArrays(GL_LINES, enemy_shapes_pntr[cluster_index], enemy_shapes[cluster_index].size());
-
-            }
-            else
-            {
-                eship = rotate_uvw(identity_mat4(), drones[lp].angle, vec3d(0, 0, 1.0));
-                eship = scale(eship, vec3(Drone_size*x_ratio, Drone_size*y_ratio, 0));
-                eship = translate(eship, vec3(drones[lp].xpos*x_ratio, drones[lp].ypos*y_ratio, 0));
-                glUniformMatrix4fv(sh_pship.matrix_mat_location, 1, false, eship.m);                    // Send matrix to shader
-                glDrawArrays(GL_LINES, enemy_shapes_pntr[cluster_index], enemy_shapes[cluster_index].size());
-
-            }
-        }
-    }
-
-    glBindVertexArray(0);
-    */
     // Draw ship shield if active
     Draw_shields();
 
@@ -378,9 +348,13 @@ void Draw_ship_exploding()
 {
     int explo;
     vec4 color;
+    float x, y;
 
-    glUseProgram(sh_shipexplode.program);
-    glBindVertexArray(sh_shipexplode.vao);
+    glUseProgram(sh_shipexplode2.program);
+    glBindVertexArray(sh_shipexplode2.vao);
+
+    glUniform1f(sh_shipexplode2.Xmax_location, Xmax);
+    glUniform1f(sh_shipexplode2.Ymax_location, Ymax);
 
     for (explo=0; explo<ship_explode.size(); explo++)     // Loop through explosion array to see if any active explosions going on.
     {
@@ -389,11 +363,30 @@ void Draw_ship_exploding()
             ship_explode[explo].time+= elapsed_time;
             if (ship_explode[explo].time < 1.5)        // Update ship explosion
             {
+                float sfactor;
+                int code = ship_explode[explo].code.v[0];
+                x = ship_explode[explo].xpos;
+                y = ship_explode[explo].ypos;
+
+                if (code == SHIP) sfactor = Ship_speed_factor*elapsed_time;
+                else sfactor = Enemy_speed_factor*elapsed_time;
+
+                x+= ship_explode[explo].xdir*sfactor;
+                y+= ship_explode[explo].ydir*sfactor;
+
+                if (x<0) x=Xmax+x;
+                else if (x>Xmax) x = x-Xmax;
+                if (y<0) y=Ymax+y;
+                else if (y>Ymax) y = y-Ymax;
+
+                ship_explode[explo].xpos = x;
+                ship_explode[explo].ypos = y;
+
                 color = vec4(ship_explode[explo].color, 1.0 - ship_explode[explo].time*0.67);
-                glUniform4fv(sh_shipexplode.color_location, 1, color.v);
-                glUniform2f(sh_shipexplode.center_location, ship_explode[explo].xpos, ship_explode[explo].ypos);
-                glUniform1f(sh_shipexplode.time_locaton, ship_explode[explo].time);
-                glDrawArraysInstancedBaseInstance(GL_LINES, 0, 2, Ship_explode_debris, explo*Ship_explode_debris);
+                glUniform4fv(sh_shipexplode2.color_location, 1, color.v);
+                glUniform2f(sh_shipexplode2.center_location, ship_explode[explo].xpos, ship_explode[explo].ypos);
+                glUniform1f(sh_shipexplode2.time_locaton, ship_explode[explo].time);
+                glDrawArrays(GL_POINTS, explo*Ship_explode_debris, Ship_explode_debris);
             }
             else
             {
@@ -451,6 +444,44 @@ void Draw_impacts()
            {
                impact[lp].status = false;
                impact_cnt--;
+           }
+        }
+    }
+    glBindVertexArray(0);
+}
+
+void Draw_drone_explosions()
+{
+    int lp;
+    float time;
+    float current_time = glfwGetTime();
+    vec4 color;
+    float sfactor = elapsed_time;
+
+    glUseProgram(sh_drexplode.program);
+    glBindVertexArray(sh_drexplode.vao);
+    glUniform1f(sh_drexplode.xratio_location, x_ratio);
+    glUniform1f(sh_drexplode.yratio_location, y_ratio);
+    glUniform1f(sh_drexplode.Xmax_location, Xmax);
+    glUniform1f(sh_drexplode.Ymax_location, Ymax);
+
+    for (lp=0; lp<drexplode.size(); lp++)
+    {
+        if (drexplode[lp].status)
+        {
+           if (current_time < drexplode[lp].time+0.75)
+           {
+               drexplode[lp].xdrone+= drexplode[lp].xdir*sfactor;
+               drexplode[lp].ydrone+= drexplode[lp].ydir*sfactor;
+
+               time = current_time - drexplode[lp].time;
+               glUniform2f(sh_drexplode.center_location, drexplode[lp].xdrone, drexplode[lp].ydrone);
+               glUniform1f(sh_drexplode.time_locaton, time);
+               glDrawArrays(GL_POINTS, lp*DRONE_PARTICLES, DRONE_PARTICLES);
+           }
+           else
+           {
+               drexplode[lp].status = false;
            }
         }
     }

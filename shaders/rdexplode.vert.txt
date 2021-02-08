@@ -1,0 +1,34 @@
+#version 410
+
+layout(location=0) in vec2 direction;
+layout(location=1) in vec3 col;
+layout(location=2) in float psize;
+
+uniform mat4 proj; //view and projection matrix
+uniform mat4 matrix;
+
+uniform float depth;
+uniform float time;
+uniform vec2 center;
+uniform float xratio;
+uniform float yratio;
+uniform float Xmax;
+uniform float Ymax;
+
+out vec4 colour;
+
+void main()
+{
+  gl_PointSize = psize;
+  colour = vec4(col, (1.0 - time*1.333333));
+  vec2 pos = center + direction*time;
+
+  if (pos.x<0) pos.x = Xmax+pos.x;
+  else if (pos.x>Xmax) pos.x = pos.x-Xmax;
+  if (pos.y<0) pos.y = Ymax+pos.y;
+  else if (pos.y>Ymax) pos.y = pos.y-Ymax;
+
+  pos.x*= xratio;
+  pos.y*= yratio;
+  gl_Position = proj * matrix * vec4(pos, depth, 1.0);
+}

@@ -96,6 +96,107 @@ void Update_playerships()
     }
 }
 
+/// Create a single large rock and starting position
+rock_data Place_rock2(int type)
+{
+    uniform_real_distribution<float>rock_speed(0.5, 1.2);
+    uniform_real_distribution<float>color_factor(0.5, 1.0);
+    uniform_real_distribution<float>angle_step(-3.0, 3.0);
+    uniform_real_distribution<float>direction(1.0, 359.0);
+    uniform_real_distribution<float>rock_size(37.0, 45.0);
+
+    float angle = direction(rndrock) * TO_RADIANS;
+    float speed = rock_speed(rndrock);
+    rock_data rd;
+
+    rd.type = type;
+    rd.stage = BIG_ROCK;
+    rd.mass = 100.0;
+    rd.angle = 0;
+    rd.radius = rock_size(rndrock);
+    rd.angle_step = angle_step(rndrock)*TO_RADIANS;
+
+    if (type == COMMON_ROCK)
+    {
+        rd.color = Common_color * color_factor(rndrock);
+        rd.hits = Hits_standard_big;
+        rd.score = Points_standard_big;
+    }
+    else if (type == FAST_ROCK)
+    {
+        rd.color = Fast_color * color_factor(rndrock);
+        rd.hits = Hits_fast_big;
+        rd.score = Points_fast_big;
+        speed = 4.0;
+    }
+    else if (type == BRITTLE_ROCK)
+    {
+        rd.color = Brittle_color * color_factor(rndrock);
+        rd.hits = Hits_brittle_big;
+        rd.score = Points_brittle_big;
+    }
+    else if (type == HARD_ROCK)
+    {
+        rd.color = Hard_color * color_factor(rndrock);
+        rd.hits = Hits_hard_big;
+        rd.score = Points_hard_big;
+    }
+
+    rd.xdir = sin(angle)*speed;
+    rd.ydir = cos(angle)*speed;
+
+    // Set starting position of new big rock
+    uniform_int_distribution<int>sides(0, 3);
+    uniform_real_distribution<float>xstart(0.0, Xmax);
+    uniform_real_distribution<float>ystart(0.0, Ymax);
+
+    rd.status = true;
+    if (!Rock_instancing)
+    {
+        int rock_shape;
+        if (Custom_rocks_flag)
+        {
+            uniform_int_distribution<int>c_shape(0, custom_rock_count-1);
+            rock_shape = c_shape(rndrock) + Custom_rock_shapes_pntr;
+        }
+        else
+        {
+            uniform_int_distribution<int>shape(0, Big_rock_shapes-1);
+            rock_shape = shape(rndrock);
+        }
+        rd.pntr = rock_table[rock_shape];            // Outline rocks
+        rd.s_pntr = s_rock_table[rock_shape];        // Solid rocks
+    }
+    else
+    {
+        rd.pntr = rock_table[0];            // Outline rocks
+        rd.s_pntr = s_rock_table[0];        // Solid rocks
+    }
+
+    int where = sides(rndrock);
+    if (where == 0)
+    {
+        rd.xpos = -50.0;
+        rd.ypos = ystart(rndrock);
+    }
+    else if (where == 1)
+    {
+        rd.xpos = xstart(rndrock);
+        rd.ypos = Ymax + 50.0;
+    }
+    else if (where == 2)
+    {
+        rd.xpos = Xmax + 50.0;
+        rd.ypos = ystart(rndrock);
+    }
+    else if (where == 3)
+    {
+        rd.xpos = xstart(rndrock);
+        rd.ypos = -50.0;
+    }
+    return rd;
+}
+
 /// Move rocks and place in collision grid
 void Update_rocks()
 {
@@ -201,6 +302,20 @@ void Update_rocks()
                     rgrid[x_side][y_side].push_back(rcode);
                 }
             }
+        }
+    }
+
+    // Spawn new rock if it's time for it
+    if (!rstarts.empty())
+    {
+        Rock_spawn_timer-= elapsed_time;
+        if (Rock_spawn_timer<0.0)
+        {
+            Rock_spawn_timer = Rock_spawn_delay;
+            int sz = rstarts.size()-1;
+            rocks.push_back(Place_rock2(rstarts[sz]));
+            rstarts.pop_back();
+            total_rocks++;
         }
     }
 }
@@ -314,6 +429,28 @@ void Update_instanced_rocks()
                     rgrid[x_side][y_side].push_back(rcode);
                 }
             }
+        }
+    }
+
+    // Spawn new rock if it's time for it
+    if (!rstarts.empty())
+    {
+        Rock_spawn_timer-= elapsed_time;
+        if (Rock_spawn_timer<0.0)
+        {
+            Rock_spawn_timer = Rock_spawn_delay;
+            int sz = rstarts.size()-1;
+            rocks.push_back(Place_rock2(rstarts[sz]));
+            rstarts.pop_back();
+            total_rocks++;
+            Rock_buffers_changed = true;
+
+            sz = rocks.size()-1;
+            sh_rocks2.active[sz] = 1;
+            sh_rocks2.position[sz] = vec2(rocks[sz].xpos, rocks[sz].ypos);
+            sh_rocks2.angle[sz] = 0;
+            sh_rocks2.radius[sz] = rocks[sz].radius;
+            sh_rocks2.color[sz] = rocks[sz].color;
         }
     }
 }

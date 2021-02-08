@@ -1,0 +1,57 @@
+# version 410
+
+layout (points) in;
+layout (line_strip, max_vertices = 2) out;
+
+in vec2 gdirection[];
+in vec2 gspin[];
+in float gradius[];
+
+uniform mat4 proj;
+uniform mat4 matrix;
+
+uniform vec2 center;
+uniform vec4 color;
+uniform float time;
+uniform float xratio;
+uniform float yratio;
+uniform float Xmax;
+uniform float Ymax;
+uniform float depth;
+
+out vec4 colour;
+
+void main()
+{
+   float angle = gspin[0].x + gspin[0].y*500.0*time;
+   float x = -cos(angle);
+   float y = -sin(angle);
+   float x2 = cos(angle);
+   float y2 = sin(angle);
+
+   vec2 cpos = center + gdirection[0]*time;
+
+   // Handle screen overlap
+   if (cpos.x<0) cpos.x = Xmax+cpos.x;
+   else if (cpos.x>Xmax) cpos.x = cpos.x-Xmax;
+   if (cpos.y<0) cpos.y = Ymax+cpos.y;
+   else if (cpos.y>Ymax) cpos.y = cpos.y-Ymax;
+   
+   vec2 pos = cpos;
+   pos+= vec2(x, y)*gradius[0];
+   pos.x*= xratio;
+   pos.y*= yratio;
+   gl_Position = proj * matrix * vec4(pos, depth, 1.0);
+   colour = color;
+   EmitVertex();
+   
+   pos = cpos;
+   pos+= vec2(x2, y2)*gradius[0];
+   pos.x*= xratio;
+   pos.y*= yratio;
+   gl_Position = proj * matrix * vec4(pos, depth, 1.0);
+   colour = color;
+   EmitVertex();
+   EndPrimitive();
+      
+}

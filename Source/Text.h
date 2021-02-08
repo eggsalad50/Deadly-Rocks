@@ -21,5 +21,6 @@ void Joystick_settings();
 void Performance_text(float frames);
 void Draw_phrase(int phrase, float column, float y, float z, vec4 color);
 void Bonus_ship_text();
+void Misc_settings_text(float row);
 
 #endif // TEXT_H_INCLUDED

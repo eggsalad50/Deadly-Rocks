@@ -39,6 +39,7 @@ vector<drone_cluster>cluster;
 
 int Custom_rock_shapes_pntr;
 vector<rock_data> rocks;
+vector<int8_t> rstarts;
 vector<vec2i> rock_table;                     // Pointers to outlined rock shapes: v[0] is pointer, v[1] vertex count
 vector<vec2i> s_rock_table;                   // Same but for rendering solid rocks
 vector<vec2>rck_data;                         // Rock shape data (used for collision detection)
@@ -48,6 +49,7 @@ vector<ship_explode_struct> ship_explode;
 vector<mini_explode_struct> mini_explode;
 vector<eship_data> enemy;
 vector<impact_struct>impact;
+vector<drexplode_struct> drexplode;
 vector<level_data> levels;
 vector<vec2>enemy_shapes[10];
 int enemy_shapes_pntr[10];
@@ -71,6 +73,7 @@ int enemy_ships;
 double enemy_time;
 bool demo;
 bool controls;
+bool miscell;
 bool game_over;
 float bullet_speed;
 int impact_cnt;
@@ -87,6 +90,7 @@ bool score_flag;
 float time_sum;
 bool Rock_buffers_changed;
 int cluster_index;
+double Rock_spawn_timer;
 
 int k_rotate_left;
 int k_rotate_right;
@@ -96,6 +100,7 @@ int k_bomb;
 int k_shield;
 int k_num_players;
 int settings_row;
+int misc_row;
 int resolution;
 float reso_factor;
 float pre_reso_factor;
@@ -147,7 +152,7 @@ int Demo_ships;
 float Demo_bulletspeed_factor;
 float Demo_bullet_delay;
 int Player_hit_player;
-int Line_width;
+float Line_width;
 bool Rock_instancing;
 float Rock_rotation_factor;
 int Vsync;
@@ -165,6 +170,7 @@ int Max_mini_explode;
 int Max_impact;
 int Max_bullets;
 int Max_ebullets;
+double Rock_spawn_delay;
 
 vec3 Common_color;
 vec3 Fast_color;
@@ -203,6 +209,7 @@ ALuint rk_explode_sourceid[MAX_BR_EXPLODE];
 ALuint rk_explode2_sourceid[MAX_MR_EXPLODE];
 ALuint rk_explode3_sourceid[MAX_SMR_EXPLODE];
 ALuint ship_explode_sourceid[MAX_SE_EXPLODE];
+ALuint drexplode_sourceid[MAX_DR_EXPLODE];
 ALuint enemy_explode_sourceid;
 ALuint ship_bullet_sourceid[MAX_FIRE_SND];
 ALuint enemy_bullet_sourceid;
@@ -218,6 +225,7 @@ int rock3_pntr;
 bool sound_thrust_flag[17];
 int ship_snd_pntr;
 int ship_fire_pntr;
+int drexplode_pntr;
 
 
 
@@ -225,6 +233,7 @@ bool Initialize()
 {
     demo = true;
     controls = false;
+    miscell = false;
     explosion_cnt = 0;
     impact_cnt = 0;
     game_score = 0;
@@ -266,6 +275,8 @@ bool Initialize()
 
     Set_starting_monitor();
     Check_for_joysticks();
+
+    Debug=fopen(DEBUG_FILE, "a");            // For debugging purposes
     if (!Get_characters()) return false;
     if (!Get_scores()) return false;
     Set_random_generator();
@@ -283,7 +294,10 @@ bool Initialize()
     glBindBuffer(GL_ARRAY_BUFFER, sh_rexplode.direction_vbo);
     glBufferData(GL_ARRAY_BUFFER,  Max_rock_explode*Rock_explode_debris * sizeof(vec2), sh_rexplode.direction, GL_DYNAMIC_DRAW);
     glBindVertexArray(0);
-     fprintf(stderr,"\nInitialized successfully\n");
+
+    fprintf(stderr,"\nInitialized successfully\n");
+    fprintf(Debug,"\nInitialized successfully\n");
+    fclose(Debug);
 
     Start_level(game_level);
     return true;
@@ -355,12 +369,14 @@ bool Initialize_audio()
     device = alcOpenDevice(NULL);
     if (!device)
     {
-        fprintf(stderr,"\nUnable to start audio device\n");
+        fprintf(stderr, "\nUnable to start audio device\n");
+        fprintf(Debug, "\nUnable to start audio device\n");
         return false;
     }
     else
     {
-        fprintf(stderr,"\nOpenAL started\n");
+        fprintf(stderr, "\nOpenAL started\n");
+        fprintf(Debug, "\nOpenAL started\n");
     }
 
     ALboolean enumeration;
@@ -368,10 +384,12 @@ bool Initialize_audio()
     if (enumeration == AL_FALSE)
     {
         fprintf(stderr,"Enumeration not supported\n");
+        fprintf(Debug,"Enumeration not supported\n");
     }
     else
     {
         fprintf(stderr,"Enumeration supported\n");
+        fprintf(Debug,"Enumeration supported\n");
     }
 
     list_audio_devices(alcGetString(NULL, ALC_DEVICE_SPECIFIER));
@@ -381,161 +399,264 @@ bool Initialize_audio()
     if (!alcMakeContextCurrent(context))
     {
         fprintf(stderr,"Failed to make audio context current\n");
+        fprintf(Debug,"Failed to make audio context current\n");
         return false;
     }
-    else fprintf(stderr,"audio context current\n");
+    else
+    {
+        fprintf(stderr,"audio context current\n");
+        fprintf(Debug,"audio context current\n");
+    }
 
     int dsize;
     short int *data;
     AudioFile<float> rifle;
-    rifle.load("Sound/Sniper_Rifle.wav");       // Load bomb sound
     ALuint format;
 
-    data = Convert_to_sound_data(rifle, format, dsize);
-    ALuint buffer;
-    alGetError();  //Clear error
-    alGenBuffers (1, &buffer);
-    alBufferData(buffer, format, data, sizeof(short)*dsize, rifle.getSampleRate());
-    alGenSources(1, &bomb_sourceid);
-    alSourcei(bomb_sourceid, AL_BUFFER, buffer);
+    if (rifle.load("Sound/Sniper_Rifle.wav"))
+    {
+        data = Convert_to_sound_data(rifle, format, dsize);
+        ALuint buffer;
+        alGetError();  //Clear error
+        alGenBuffers (1, &buffer);
+        alBufferData(buffer, format, data, sizeof(short)*dsize, rifle.getSampleRate());
+        alGenSources(1, &bomb_sourceid);
+        alSourcei(bomb_sourceid, AL_BUFFER, buffer);
+    }
+    else
+    {
+        fprintf(Debug," Error! Can't load \"Sound/Sniper_Rifle.wav\"\n");
+    }
 
     AudioFile<float> explo;
-    explo.load("Sound/Bigrock_explosion.wav");
-    data = Convert_to_sound_data(explo, format, dsize);
-    ALuint buffer2;
-    alGetError();  //Clear error
-    alGenBuffers (1, &buffer2);
-    alBufferData(buffer2, format, data, sizeof(short)*dsize, explo.getSampleRate());
-    alGenSources(MAX_BR_EXPLODE, &rk_explode_sourceid[0]);
-    for (int lp=0; lp<MAX_BR_EXPLODE; lp++)
+    if (explo.load("Sound/Bigrock_explosion.wav"))
     {
-        alSourcei(rk_explode_sourceid[lp], AL_BUFFER, buffer2);
+        data = Convert_to_sound_data(explo, format, dsize);
+        ALuint buffer2;
+        alGetError();  //Clear error
+        alGenBuffers (1, &buffer2);
+        alBufferData(buffer2, format, data, sizeof(short)*dsize, explo.getSampleRate());
+        alGenSources(MAX_BR_EXPLODE, &rk_explode_sourceid[0]);
+        for (int lp=0; lp<MAX_BR_EXPLODE; lp++)
+        {
+            alSourcei(rk_explode_sourceid[lp], AL_BUFFER, buffer2);
+        }
+    }
+    else
+    {
+        fprintf(Debug," Error! Can't load \"Sound/Bigrock_explosion.wav\"\n");
     }
 
     AudioFile<float> explo2;
-    explo2.load("Sound/Medrock_explosion.wav");
-    data = Convert_to_sound_data(explo2, format, dsize);
-    ALuint buffer4;
-    alGetError();  //Clear error
-    alGenBuffers (1, &buffer4);
-    alBufferData(buffer4, format, data, sizeof(short)*dsize, explo2.getSampleRate());
-    alGenSources(MAX_MR_EXPLODE, &rk_explode2_sourceid[0]);
-    for (int lp=0; lp<MAX_MR_EXPLODE; lp++)
+    if (explo2.load("Sound/Medrock_explosion.wav"))
     {
-        alSourcei(rk_explode2_sourceid[lp], AL_BUFFER, buffer4);
+        data = Convert_to_sound_data(explo2, format, dsize);
+        ALuint buffer4;
+        alGetError();  //Clear error
+        alGenBuffers (1, &buffer4);
+        alBufferData(buffer4, format, data, sizeof(short)*dsize, explo2.getSampleRate());
+        alGenSources(MAX_MR_EXPLODE, &rk_explode2_sourceid[0]);
+        for (int lp=0; lp<MAX_MR_EXPLODE; lp++)
+        {
+            alSourcei(rk_explode2_sourceid[lp], AL_BUFFER, buffer4);
+        }
+    }
+    else
+    {
+        fprintf(Debug," Error! Can't load \"Sound/Medrock_explosion.wav\"\n");
     }
 
     AudioFile<float> explo3;
-    explo3.load("Sound/Smallrock_explosion.wav");
-    data = Convert_to_sound_data(explo3, format, dsize);
-    ALuint buffer5;
-    alGetError();  //Clear error
-    alGenBuffers (1, &buffer5);
-    alBufferData(buffer5, format, data, sizeof(short)*dsize, explo3.getSampleRate());
-    alGenSources(MAX_SMR_EXPLODE, &rk_explode3_sourceid[0]);
-    for (int lp=0; lp<MAX_SMR_EXPLODE; lp++)
+    if (explo3.load("Sound/Smallrock_explosion.wav"))
     {
-        alSourcei(rk_explode3_sourceid[lp], AL_BUFFER, buffer5);
+        data = Convert_to_sound_data(explo3, format, dsize);
+        ALuint buffer5;
+        alGetError();  //Clear error
+        alGenBuffers (1, &buffer5);
+        alBufferData(buffer5, format, data, sizeof(short)*dsize, explo3.getSampleRate());
+        alGenSources(MAX_SMR_EXPLODE, &rk_explode3_sourceid[0]);
+        for (int lp=0; lp<MAX_SMR_EXPLODE; lp++)
+        {
+            alSourcei(rk_explode3_sourceid[lp], AL_BUFFER, buffer5);
+        }
+    }
+    else
+    {
+        fprintf(Debug," Error! Can't load \"Sound/Smallrock_explosion.wav\"\n");
     }
 
     AudioFile<float> ship_explo;
-    ship_explo.load("Sound/Ship_explode.wav");
-    data = Convert_to_sound_data(ship_explo, format, dsize);
-    ALuint buffer3;
-    alGetError();  //Clear error
-    alGenBuffers (1, &buffer3);
-    alBufferData(buffer3, format, data, sizeof(short)*dsize, ship_explo.getSampleRate());
-    alGenSources(10, &ship_explode_sourceid[0]);
-    for (int lp=0; lp<MAX_SE_EXPLODE; lp++)
+    if (ship_explo.load("Sound/Ship_explode.wav"))
     {
-        alSourcei(ship_explode_sourceid[lp], AL_BUFFER, buffer3);
+        data = Convert_to_sound_data(ship_explo, format, dsize);
+        ALuint buffer3;
+        alGetError();  //Clear error
+        alGenBuffers (1, &buffer3);
+        alBufferData(buffer3, format, data, sizeof(short)*dsize, ship_explo.getSampleRate());
+        alGenSources(10, &ship_explode_sourceid[0]);
+        for (int lp=0; lp<MAX_SE_EXPLODE; lp++)
+        {
+            alSourcei(ship_explode_sourceid[lp], AL_BUFFER, buffer3);
+        }
+    }
+    else
+    {
+        fprintf(Debug," Error! Can't load \"Sound/Ship_explode.wav\"\n");
     }
 
     AudioFile<float> E_explo;
-    E_explo.load("Sound/Enemy_explode.wav");
-    data = Convert_to_sound_data(E_explo, format, dsize);
-    ALuint buffer10;
-    alGetError();  //Clear error
-    alGenBuffers (1, &buffer10);
-    alBufferData(buffer10, format, data, sizeof(short)*dsize, E_explo.getSampleRate());
-    alGenSources(1, &enemy_explode_sourceid);
-    alSourcei(enemy_explode_sourceid, AL_BUFFER, buffer10);
+    if (E_explo.load("Sound/Enemy_explode.wav"))
+    {
+        data = Convert_to_sound_data(E_explo, format, dsize);
+        ALuint buffer10;
+        alGetError();  //Clear error
+        alGenBuffers (1, &buffer10);
+        alBufferData(buffer10, format, data, sizeof(short)*dsize, E_explo.getSampleRate());
+        alGenSources(1, &enemy_explode_sourceid);
+        alSourcei(enemy_explode_sourceid, AL_BUFFER, buffer10);
+    }
+    else
+    {
+        fprintf(Debug," Error! Can't load \"Sound/Enemy_explode.wav\"\n");
+    }
 
     AudioFile<float> ship_shot;
-    ship_shot.load("Sound/Ship_bullet.wav");
-    data = Convert_to_sound_data(ship_shot, format, dsize);
-    ALuint buffer6;
-    alGetError();  //Clear error
-    alGenBuffers (1, &buffer6);
-    alBufferData(buffer6, format, data, sizeof(short)*dsize, ship_shot.getSampleRate());
-    alGenSources(MAX_FIRE_SND, &ship_bullet_sourceid[0]);
-    for (int lp=0; lp<MAX_FIRE_SND; lp++)
+    if (ship_shot.load("Sound/Ship_bullet.wav"))
     {
-        alSourcei(ship_bullet_sourceid[lp], AL_BUFFER, buffer6);
+        data = Convert_to_sound_data(ship_shot, format, dsize);
+        ALuint buffer6;
+        alGetError();  //Clear error
+        alGenBuffers (1, &buffer6);
+        alBufferData(buffer6, format, data, sizeof(short)*dsize, ship_shot.getSampleRate());
+        alGenSources(MAX_FIRE_SND, &ship_bullet_sourceid[0]);
+        for (int lp=0; lp<MAX_FIRE_SND; lp++)
+        {
+            alSourcei(ship_bullet_sourceid[lp], AL_BUFFER, buffer6);
+        }
+    }
+    else
+    {
+        fprintf(Debug," Error! Can't load \"Sound/Ship_bullet.wav\"\n");
     }
 
     AudioFile<float> E_shot;
-    E_shot.load("Sound/Enemy_bullet.wav");
-    data = Convert_to_sound_data(E_shot, format, dsize);
-    ALuint buffer11;
-    alGetError();  //Clear error
-    alGenBuffers (1, &buffer11);
-    alBufferData(buffer11, format, data, sizeof(short)*dsize, E_shot.getSampleRate());
-    alGenSources(1, &enemy_bullet_sourceid);
-    alSourcei(enemy_bullet_sourceid, AL_BUFFER, buffer11);
+    if (E_shot.load("Sound/Enemy_bullet.wav"))
+    {
+        data = Convert_to_sound_data(E_shot, format, dsize);
+        ALuint buffer11;
+        alGetError();  //Clear error
+        alGenBuffers (1, &buffer11);
+        alBufferData(buffer11, format, data, sizeof(short)*dsize, E_shot.getSampleRate());
+        alGenSources(1, &enemy_bullet_sourceid);
+        alSourcei(enemy_bullet_sourceid, AL_BUFFER, buffer11);
+    }
+    else
+    {
+        fprintf(Debug," Error! Can't load \"Sound/Enemy_bullet.wav\"\n");
+    }
 
     AudioFile<float> impact;
-    impact.load("Sound/Rockimpact.wav");
-    data = Convert_to_sound_data(impact, format, dsize);
-    ALuint buffer7;
-    alGetError();  //Clear error
-    alGenBuffers (1, &buffer7);
-    alBufferData(buffer7, format, data, sizeof(short)*dsize, impact.getSampleRate());
-    alGenSources(1, &rock_impact_sourceid);
-    alSourcei(rock_impact_sourceid, AL_BUFFER, buffer7);
+    if (impact.load("Sound/Rockimpact.wav"))
+    {
+        data = Convert_to_sound_data(impact, format, dsize);
+        ALuint buffer7;
+        alGetError();  //Clear error
+        alGenBuffers (1, &buffer7);
+        alBufferData(buffer7, format, data, sizeof(short)*dsize, impact.getSampleRate());
+        alGenSources(1, &rock_impact_sourceid);
+        alSourcei(rock_impact_sourceid, AL_BUFFER, buffer7);
+    }
+    else
+    {
+        fprintf(Debug," Error! Can't load \"Sound/Rockimpact.wav\"\n");
+    }
 
     AudioFile<float> sh_bounce;
-    sh_bounce.load("Sound/Shipbounce.wav");
-    data = Convert_to_sound_data(sh_bounce, format, dsize);
-    ALuint buffer8;
-    alGetError();  //Clear error
-    alGenBuffers (1, &buffer8);
-    alBufferData(buffer8, format, data, sizeof(short)*dsize, sh_bounce.getSampleRate());
-    alGenSources(1, &ship_bounce_sourceid);
-    alSourcei(ship_bounce_sourceid, AL_BUFFER, buffer8);
+    if (sh_bounce.load("Sound/Shipbounce.wav"))
+    {
+        data = Convert_to_sound_data(sh_bounce, format, dsize);
+        ALuint buffer8;
+        alGetError();  //Clear error
+        alGenBuffers (1, &buffer8);
+        alBufferData(buffer8, format, data, sizeof(short)*dsize, sh_bounce.getSampleRate());
+        alGenSources(1, &ship_bounce_sourceid);
+        alSourcei(ship_bounce_sourceid, AL_BUFFER, buffer8);
+    }
+    else
+    {
+         fprintf(Debug," Error! Can't load \"Sound/Shipbounce.wav\"\n");
+    }
 
     AudioFile<float> siren;
-    siren.load("Sound/Enemy_siren.wav");
-    data = Convert_to_sound_data(siren, format, dsize);
-    ALuint buffer9;
-    alGetError();  //Clear error
-    alGenBuffers (1, &buffer9);
-    alBufferData(buffer9, format, data, sizeof(short)*dsize, siren.getSampleRate());
-    alGenSources(1, &enemy_siren_sourceid);
-    alSourcei(enemy_siren_sourceid, AL_BUFFER, buffer9);
+    if (siren.load("Sound/Enemy_siren.wav"))
+    {
+        data = Convert_to_sound_data(siren, format, dsize);
+        ALuint buffer9;
+        alGetError();  //Clear error
+        alGenBuffers (1, &buffer9);
+        alBufferData(buffer9, format, data, sizeof(short)*dsize, siren.getSampleRate());
+        alGenSources(1, &enemy_siren_sourceid);
+        alSourcei(enemy_siren_sourceid, AL_BUFFER, buffer9);
+    }
+    else
+    {
+        fprintf(Debug," Error! Can't load \"Sound\Enemy_siren.wav\"\n");
+    }
 
     AudioFile<float> siren2;
-    siren2.load("Sound/Enemy_siren2.wav");
-    data = Convert_to_sound_data(siren2, format, dsize);
-    ALuint buffer12;
-    alGetError();  //Clear error
-    alGenBuffers (1, &buffer12);
-    alBufferData(buffer12, format, data, sizeof(short)*dsize, siren2.getSampleRate());
-    alGenSources(1, &enemy_siren2_sourceid);
-    alSourcei(enemy_siren2_sourceid, AL_BUFFER, buffer12);
+    if (siren2.load("Sound/Enemy_siren2.wav"))
+    {
+        data = Convert_to_sound_data(siren2, format, dsize);
+        ALuint buffer12;
+        alGetError();  //Clear error
+        alGenBuffers (1, &buffer12);
+        alBufferData(buffer12, format, data, sizeof(short)*dsize, siren2.getSampleRate());
+        alGenSources(1, &enemy_siren2_sourceid);
+        alSourcei(enemy_siren2_sourceid, AL_BUFFER, buffer12);
+    }
+    else
+    {
+        fprintf(Debug," Error! Can't load \"Sound\Enemy_siren2.wav\"\n");
+    }
 
     AudioFile<float> thrust;
-    thrust.load("Sound/Thrust.wav");
-    data = Convert_to_sound_data(thrust, format, dsize);
-    ALuint buffer13;
-    alGetError();  //Clear error
-    alGenBuffers (1, &buffer13);
-    alBufferData(buffer13, format, data, sizeof(short)*dsize, thrust.getSampleRate());
-    alGenSources(17, &thrust_sourceid[0]);
-    for (int lp=0; lp<17; lp++)
+    if (thrust.load("Sound/Thrust.wav"))
     {
-        sound_thrust_flag[lp] = false;
-        alSourcei(thrust_sourceid[lp], AL_BUFFER, buffer13);
+        data = Convert_to_sound_data(thrust, format, dsize);
+        ALuint buffer13;
+        alGetError();  //Clear error
+        alGenBuffers (1, &buffer13);
+        alBufferData(buffer13, format, data, sizeof(short)*dsize, thrust.getSampleRate());
+        alGenSources(17, &thrust_sourceid[0]);
+        for (int lp=0; lp<17; lp++)
+        {
+            sound_thrust_flag[lp] = false;
+            alSourcei(thrust_sourceid[lp], AL_BUFFER, buffer13);
+        }
+    }
+    else
+    {
+        fprintf(Debug," Error! Can't load \"Sound\Thrust.wav\"\n");
+    }
+
+    drexplode_pntr = 0;
+    AudioFile<float> dr_explode;
+    if (dr_explode.load("Sound/Drone_explode.wav"))
+    {
+        data = Convert_to_sound_data(dr_explode, format, dsize);
+        ALuint buffer14;
+        alGetError();  //Clear error
+        alGenBuffers (1, &buffer14);
+        alBufferData(buffer14, format, data, sizeof(short)*dsize, dr_explode.getSampleRate());
+        alGenSources(MAX_DR_EXPLODE, &drexplode_sourceid[0]);
+        for (int lp=0; lp<MAX_DR_EXPLODE; lp++)
+        {
+            alSourcei(drexplode_sourceid[lp], AL_BUFFER, buffer14);
+        }
+    }
+    else
+    {
+        fprintf(Debug," Error!  Can't load \"Sound\Drone_explode.wav\"\n");
     }
 
     return true;
@@ -556,14 +677,18 @@ static void list_audio_devices(const ALCchar *devices)
         size_t len = 0;
 
         fprintf(stdout, "Devices list:\n");
+        fprintf(Debug,"Devices list:\n");
         fprintf(stdout, "----------\n");
+        fprintf(Debug, "----------\n");
         while (device && *device != '\0' && next && *next != '\0') {
                 fprintf(stdout, "%s\n", device);
+                fprintf(Debug, "%s\n", device);
                 len = strlen(device);
                 device += (len + 1);
                 next += (len + 2);
         }
         fprintf(stdout, "----------\n");
+        fprintf(Debug, "----------\n");
 }
 
 short int *Convert_to_sound_data(AudioFile<float> &AF, ALuint &format, int &dsize)
@@ -759,6 +884,7 @@ bool Get_level_data()
     if(!fileStream.is_open())
     {
         fprintf(stderr, "ERROR: Could not open file \"levels.txt\"\n");
+        fprintf(Debug, "ERROR: Could not open file \"levels.txt\"\n");
         return false;
     }
 
@@ -786,7 +912,8 @@ bool Get_level_data()
         {
             if (index<0)
             {
-                fprintf(stderr,"Negative or zero level number not allowed.\n");
+                fprintf(stderr, "Negative or zero level number not allowed.\n");
+                fprintf(Debug, "Negative or zero level number not allowed.\n");
                 error_flag = true;
             }
             lv.level = index;
@@ -805,12 +932,14 @@ bool Get_level_data()
 
     if (levels2[0].level != 0)
     {
-        fprintf(stderr,"First level needs to be level 1.\n");
+        fprintf(stderr, "First level needs to be level 1.\n");
+        fprintf(Debug, "First level needs to be level 1.\n");
         missing_flag = true;
     }
     if (levels2.size()<2)
     {
-        fprintf(stderr,"Need more than one level.\n");
+        fprintf(stderr, "Need more than one level.\n");
+        fprintf(Debug, "Need more than one level.\n");
         missing_flag = true;
     }
 
@@ -821,6 +950,7 @@ bool Get_level_data()
             if (order[lp]<=order[lp-1])
             {
                 fprintf(stderr,"Levels are out of order or duplicated!\n");
+                fprintf(Debug, "Levels are out of order or duplicated!\n");
                 missing_flag = true;
             }
         }
@@ -864,7 +994,8 @@ bool Get_level_data()
     */
     if (missing_flag)
     {
-        fprintf(stderr, "Please fix the \"levels.txt\" file.\n");
+        fprintf(stderr, "\nPlease fix the \"levels.txt\" file.\n");
+        fprintf(Debug, "\nPlease fix the \"levels.txt\" file.\n");
         return false;
     }
     return true;
@@ -886,31 +1017,6 @@ void Set_random_generator()
     seed_seq sd(begin(seed_data), end(seed_data));
     rndrock.seed(sd);
 }
-
-/// Read in a text file
-vector<string> ReadTextFile(const char *filePath)
-{
-    vector<string>content;
-    ifstream fileStream(filePath, std::ios::in);
-
-    if(!fileStream.is_open()) {
-        cerr << "Could not read file " << filePath << ". File does not exist." << endl;
-        return content;
-    }
-
-    string line = "";
-    while(!fileStream.eof())
-    {
-        getline(fileStream, line);
-        line.append("\n");
-        content.push_back(line);
-    }
-
-    fileStream.close();
-    return content;
-}
-
-
 
 int txt_cnt;
 int txt_len;
@@ -939,7 +1045,8 @@ bool Get_characters()
     Chget = fopen("Characters.txt", "r");
     if (!Chget)
     {
-        fprintf(stderr,"ERROR: could not open 'Characters.txt'\n");
+        fprintf(stderr,"ERROR: could not open \"Characters.txt\"\n");
+        fprintf(Debug, "ERROR: could not open \"Characters.txt\"\n");
         return false;
     }
     fscanf(Chget,"%i %f", &num, &width);
@@ -964,7 +1071,8 @@ bool Get_characters()
     ifstream fileStream("shapes/text.txt", std::ios::in);
     if (!fileStream.is_open())
     {
-        cerr << "Could not read file " << "text.txt" << ". File does not exist." << endl;
+        fprintf(stderr, "\nError! Could not open \"shapes/text.txt\".\n");
+        fprintf(Debug, "\nError! Could not open \"shapes/text.txt\".\n");
         return false;
     }
     phrase_pntr.push_back(vec2i());
@@ -1116,6 +1224,7 @@ double Search_double2(string &str, size_t pos, size_t *last)
     catch (exception &e)                              // Conversion triggered an exception, catch it.
     {
         fprintf(stderr, "Invalid number \"""%s\""".\n", number.c_str());   // Error message
+        fprintf(Debug, "Invalid number \"""%s\""".\n", number.c_str());
         missing_flag = true;
     }
     return real;
@@ -1124,12 +1233,14 @@ double Search_double2(string &str, size_t pos, size_t *last)
 void Missing(string setting)
 {
     fprintf(stderr, "Missing \"""%s\""" setting!\n", setting.c_str());
+    fprintf(Debug, "Missing \"""%s\""" setting!\n", setting.c_str());
     missing_flag = true;
 }
 
 void Missing_equal(string setting)
 {
     fprintf(stderr, "Missing equal symbol for setting \"""%s\"""!\n", setting.c_str());
+    fprintf(Debug, "Missing equal symbol for setting \"""%s\"""!\n", setting.c_str());
     missing_flag = true;
 }
 
@@ -1206,10 +1317,15 @@ bool Get_settings()
     size_t pos;
     string content;
 
+    Debug=fopen(DEBUG_FILE,"a");
+
     ifstream fileStream("Settings.ini", std::ios::in);
     if(!fileStream.is_open())
     {
         fprintf(stderr, "ERROR: Could not open file \"Settings.ini\"\n");
+
+        fprintf(Debug, "ERROR: Could not open file \"Settings.ini\"\n");
+        fclose(Debug);
         return false;
     }
     string line = "";
@@ -1249,6 +1365,7 @@ bool Get_settings()
     Ship_rotate_speed = Find_setting(content, "Ship_rotate_speed");
     Ship_decay_factor = Find_setting(content, "Ship_decay_factor");
     Solid_rock = Find_setting(content, "Solid_rock");
+    Rock_spawn_delay = Find_setting(content, "Rock_spawn_delay");
 
     Common_color = Find_color(content, "Common_color");
     Fast_color = Find_color(content, "Fast_color");
@@ -1309,12 +1426,16 @@ bool Get_settings()
 
     if (missing_flag)
     {
-        fprintf(stderr, "Please fix the \"Settings.ini\" file\n");
+        fprintf(stderr, "Please fix the \"Settings.ini\" file\n\n");
+        fprintf(Debug, "Please fix the \"Settings.ini\" file\n\n");
+        fclose(Debug);
         return false;
     }
     else
     {
-        fprintf(stderr, "Settings loaded successfully\n");
+        fprintf(stderr, "Settings loaded successfully\n\n");
+        fprintf(Debug, "Settings loaded successfully\n\n");
+        fclose(Debug);
     }
     return true;
 }
@@ -1327,7 +1448,12 @@ bool Get_scores()
 
     p_scores.clear();
     FILE *Score = fopen("Scores.txt", "r");
-    if (Score == NULL) return false;
+    if (Score == NULL)
+    {
+        fprintf(stderr, "\nWarning: \"Scores.txt\" not found\n");
+        fprintf(Debug, "\nWarning: \"Scores.txt\" not found\n");
+        return false;
+    }
 
     fscanf(Score, "%s %i", &name, &points);
     while (!feof(Score))
@@ -1422,13 +1548,15 @@ vector<vec2> Get_rock_shapes()
 {
     float num, num2;
     vector<vec2>vertex;
+    vertex.clear();
     size_t pos;
     string line = "";
     string content;
     ifstream fileStream("shapes/rocks.txt", std::ios::in);
     if (!fileStream.is_open())
     {
-        cerr << "Could not read file " << "rocks.txt" << ". File does not exist." << endl;
+        fprintf(stderr, "\nWarning!  Could not read file \"rocks.txt\".\n");
+        fprintf(Debug, "\nWarning!  Could not read file \"rocks.txt\".\n");
         return vertex;
     }
     while (!fileStream.eof())
@@ -1437,8 +1565,8 @@ vector<vec2> Get_rock_shapes()
         content.append(line + " ");
     }
     fileStream.close();
+
     pos = content.find("Start_data");
-    //fprintf(stderr,"Start data  %i\n", pos);
     if (pos!=std::string::npos)
     {
         do
@@ -1451,7 +1579,8 @@ vector<vec2> Get_rock_shapes()
     }
     else
     {
-        fprintf(stderr, "Custom rock data not found\n");
+        fprintf(stderr, "\nCustom rock data not found!\n");
+        fprintf(Debug, "\nCustom rock data not found!\n");
     }
     return vertex;
 }
@@ -1472,7 +1601,8 @@ bool Create_playership()
     ifstream fileStream("shapes/ships.txt", std::ios::in);
     if (!fileStream.is_open())
     {
-        cerr << "Could not read file " << "ships.txt" << ". File does not exist." << endl;
+        fprintf(stderr, "\nError!  Could not open file \"ships.txt\".\n");
+        fprintf(Debug, "\nError!  Could not open file \"ships.txt\".\n");
         return false;
     }
     string line = "";
@@ -1936,6 +2066,107 @@ void Create_rock_shapes()
     }
 }
 
+/// Create a single large rock and starting position
+rock_data Place_rock(int type)
+{
+    uniform_real_distribution<float>rock_speed(0.5, 1.2);
+    uniform_real_distribution<float>color_factor(0.5, 1.0);
+    uniform_real_distribution<float>angle_step(-3.0, 3.0);
+    uniform_real_distribution<float>direction(1.0, 359.0);
+    uniform_real_distribution<float>rock_size(37.0, 45.0);
+
+    float angle = direction(rndrock) * TO_RADIANS;
+    float speed = rock_speed(rndrock);
+    rock_data rd;
+
+    rd.type = type;
+    rd.stage = BIG_ROCK;
+    rd.mass = 100.0;
+    rd.angle = 0;
+    rd.radius = rock_size(rndrock);
+    rd.angle_step = angle_step(rndrock)*TO_RADIANS;
+
+    if (type == COMMON_ROCK)
+    {
+        rd.color = Common_color * color_factor(rndrock);
+        rd.hits = Hits_standard_big;
+        rd.score = Points_standard_big;
+    }
+    else if (type == FAST_ROCK)
+    {
+        rd.color = Fast_color * color_factor(rndrock);
+        rd.hits = Hits_fast_big;
+        rd.score = Points_fast_big;
+        speed = 4.0;
+    }
+    else if (type == BRITTLE_ROCK)
+    {
+        rd.color = Brittle_color * color_factor(rndrock);
+        rd.hits = Hits_brittle_big;
+        rd.score = Points_brittle_big;
+    }
+    else if (type == HARD_ROCK)
+    {
+        rd.color = Hard_color * color_factor(rndrock);
+        rd.hits = Hits_hard_big;
+        rd.score = Points_hard_big;
+    }
+
+    rd.xdir = sin(angle)*speed;
+    rd.ydir = cos(angle)*speed;
+
+    // Set starting position of new big rock
+    uniform_int_distribution<int>sides(0, 3);
+    uniform_real_distribution<float>xstart(0.0, Xmax);
+    uniform_real_distribution<float>ystart(0.0, Ymax);
+
+    rd.status = true;
+    if (!Rock_instancing)
+    {
+        int rock_shape;
+        if (Custom_rocks_flag)
+        {
+            uniform_int_distribution<int>c_shape(0, custom_rock_count-1);
+            rock_shape = c_shape(rndrock) + Custom_rock_shapes_pntr;
+        }
+        else
+        {
+            uniform_int_distribution<int>shape(0, Big_rock_shapes-1);
+            rock_shape = shape(rndrock);
+        }
+        rd.pntr = rock_table[rock_shape];            // Outline rocks
+        rd.s_pntr = s_rock_table[rock_shape];        // Solid rocks
+    }
+    else
+    {
+        rd.pntr = rock_table[0];            // Outline rocks
+        rd.s_pntr = s_rock_table[0];        // Solid rocks
+    }
+
+    int where = sides(rndrock);
+    if (where == 0)
+    {
+        rd.xpos = -50.0;
+        rd.ypos = ystart(rndrock);
+    }
+    else if (where == 1)
+    {
+        rd.xpos = xstart(rndrock);
+        rd.ypos = Ymax + 50.0;
+    }
+    else if (where == 2)
+    {
+        rd.xpos = Xmax + 50.0;
+        rd.ypos = ystart(rndrock);
+    }
+    else if (where == 3)
+    {
+        rd.xpos = xstart(rndrock);
+        rd.ypos = -50.0;
+    }
+    return rd;
+}
+
 void Create_rocks(int level)
 {
     int lp;
@@ -1949,143 +2180,46 @@ void Create_rocks(int level)
     cnt*= 25;
     Initialize_rock_grid(cnt);
 
-    uniform_int_distribution<int>fast(0, 25);
-    uniform_int_distribution<int>hard(0, 10);
-    uniform_int_distribution<int>brittle(0, 15);
-    uniform_int_distribution<int>sides(0, 3);
-    uniform_int_distribution<int>shape(0, Big_rock_shapes-1);
-    uniform_int_distribution<int>c_shape(0, custom_rock_count-1);       // Custom rocks
-    uniform_real_distribution<float>angle_step(-3.0, 3.0);
-    uniform_real_distribution<float>direction(1.0, 359.0);
-    uniform_real_distribution<float>rock_size(37.0, 45.0);
-    uniform_real_distribution<float>xstart(0.0, Xmax);
-    uniform_real_distribution<float>ystart(0.0, Ymax);
-    uniform_real_distribution<float>rock_speed(0.5, 1.2);
-    uniform_real_distribution<float>color_factor(0.5, 1.0);
-
-    uniform_real_distribution<float>test_radius(20.0, 50.0);
-    uniform_int_distribution<int>test_active(0, 5);
-
-    rocks.reserve(cnt);
     rocks.clear();
-    rock_data rd;
-    total_rocks = 0;
-
-    rd.stage = BIG_ROCK;
-    rd.mass = 100.0;
-
-    for (lp=0; lp<num_rocks; lp++)  // Common rocks
+    rocks.reserve(cnt);
+    rstarts.clear();
+    rstarts.reserve(cnt);
+    for (lp=0; lp<num_rocks; lp++)
     {
-        rd.type = COMMON_ROCK;
-        rd.color = Common_color * color_factor(rndrock);
-        rd.hits = 4;
-        rd.score = Points_standard_big;
-        angle = direction(rndrock) * TO_RADIANS;
-        float speed = rock_speed(rndrock);
-        rd.xdir = sin(angle)*speed;
-        rd.ydir = cos(angle)*speed;
-        rd.radius = rock_size(rndrock);
-        rd.angle = 0;
-        rd.angle_step = angle_step(rndrock)*TO_RADIANS;
-        rocks.push_back(rd);
-        total_rocks++;
+        rstarts.push_back(COMMON_ROCK);
+    }
+    for (lp=0; lp<num_rocks2; lp++)
+    {
+        rstarts.push_back(FAST_ROCK);
+    }
+    for (lp=0; lp<num_rocks3; lp++)
+    {
+        rstarts.push_back(BRITTLE_ROCK);
+    }
+    for (lp=0; lp<num_rocks4; lp++)
+    {
+        rstarts.push_back(HARD_ROCK);
     }
 
-    for (lp=0; lp<num_rocks2; lp++)  // Fast rocks
+    std::random_shuffle(rstarts.begin(), rstarts.end());
+
+    if (Rock_spawn_delay>0.0)
     {
-        rd.type = FAST_ROCK;
-        rd.color = Fast_color * color_factor(rndrock);
-        rd.hits = 3;
-        rd.score = Points_fast_big;
-        angle = direction(rndrock) * TO_RADIANS;
-        float speed = 4.0;
-        rd.xdir = sin(angle)*speed;
-        rd.ydir = cos(angle)*speed;
-        rd.radius = rock_size(rndrock);
-        rd.angle = 0;
-        rd.angle_step = angle_step(rndrock)*TO_RADIANS;
-        rocks.push_back(rd);
+        total_rocks = 0;
+        Rock_spawn_timer = Rock_spawn_delay;   // From settings file
+        int sz = rstarts.size()-1;
+        rocks.push_back(Place_rock(rstarts[sz]));
+        rstarts.pop_back();
         total_rocks++;
     }
-
-    for (lp=0; lp<num_rocks3; lp++)  // Fast rocks
+    else
     {
-        rd.type = BRITTLE_ROCK;
-        rd.color = Brittle_color * color_factor(rndrock);
-        rd.hits = 1;
-        rd.score = Points_brittle_big;
-        angle = direction(rndrock) * TO_RADIANS;
-        float speed = rock_speed(rndrock);
-        rd.xdir = sin(angle)*speed;
-        rd.ydir = cos(angle)*speed;
-        rd.radius = rock_size(rndrock);
-        rd.angle = 0;
-        rd.angle_step = angle_step(rndrock)*TO_RADIANS;
-        rocks.push_back(rd);
-        total_rocks++;
-    }
-
-    for (lp=0; lp<num_rocks4; lp++)  // Hard rocks
-    {
-        rd.type = HARD_ROCK;
-        rd.color = Hard_color * color_factor(rndrock);
-        rd.hits = 20;
-        rd.score = Points_hard_big;
-        angle = direction(rndrock) * TO_RADIANS;
-        float speed = rock_speed(rndrock);
-        rd.xdir = sin(angle)*speed;
-        rd.ydir = cos(angle)*speed;
-        rd.radius = rock_size(rndrock);
-        rd.angle = 0;
-        rd.angle_step = angle_step(rndrock)*TO_RADIANS;
-        rocks.push_back(rd);
-        total_rocks++;
-    }
-
-    // Determine starting positions of rocks
-    for (lp=0; lp<rocks.size(); lp++)
-    {
-        rocks[lp].status = true;
-        if (!Rock_instancing)
+        for (lp=0; lp<rstarts.size(); lp++)
         {
-            int rock_shape;
-            if (Custom_rocks_flag)
-            {
-                rock_shape = c_shape(rndrock) + Custom_rock_shapes_pntr;
-            }
-            else
-            {
-                rock_shape = shape(rndrock);
-            }
-            rocks[lp].pntr = rock_table[rock_shape];            // Outline rocks
-            rocks[lp].s_pntr = s_rock_table[rock_shape];        // Solid rocks
-        }
-        else
-        {
-            rocks[lp].pntr = rock_table[0];            // Outline rocks
-            rocks[lp].s_pntr = s_rock_table[0];        // Solid rocks
-        }
-
-        int where = sides(rndrock);
-        if (where == 0)
-        {
-            rocks[lp].xpos = -50.0;
-            rocks[lp].ypos = ystart(rndrock);
-        }
-        else if (where == 1)
-        {
-            rocks[lp].xpos = xstart(rndrock);
-            rocks[lp].ypos = Ymax + 50.0;
-        }
-        else if (where == 2)
-        {
-            rocks[lp].xpos = Xmax + 50.0;
-            rocks[lp].ypos = ystart(rndrock);
-        }
-        else if (where == 3)
-        {
-            rocks[lp].xpos = xstart(rndrock);
-            rocks[lp].ypos = -50.0;
+            int sz = rstarts.size()-1;
+            rocks.push_back(Place_rock(rstarts[sz]));
+            rstarts.pop_back();
+            total_rocks++;
         }
     }
 
@@ -2126,7 +2260,7 @@ void Create_rocks(int level)
 
           for (lp=0; lp<reserve; lp++)
          {
-             sh_rocks2.angle[lp] = 0; //rocks[lp].angle_step;
+             sh_rocks2.angle[lp] = 0;
          }
           glBindBuffer(GL_ARRAY_BUFFER, sh_rocks2.angle_vbo);
           glBufferSubData(GL_ARRAY_BUFFER, 0, reserve * sizeof(float), sh_rocks2.angle);
@@ -2138,15 +2272,16 @@ void Create_rocks(int level)
     // Calculate potential number of small rocks.
     // Used to determine when to launch enemy ships
     potential_rocks = 0;
-    for (lp=0; lp<rocks.size(); lp++)
+    for (lp=0; lp<rstarts.size(); lp++)
     {
-        if (rocks[lp].type == BRITTLE_ROCK) potential_rocks+= 50;
+        if (rstarts[lp] == BRITTLE_ROCK) potential_rocks+= 50;
         else potential_rocks+= 25;
     }
 
     rock_explode.clear();
     mini_explode.clear();
     impact.clear();
+    drexplode.clear();
     potential_max = potential_rocks;
     Rock_buffers_changed = true;
 }
@@ -2240,7 +2375,7 @@ void Add_cluster()
 
     vec2 dra = levels[game_level-1].dr_accel;
     uniform_real_distribution<float>ac(dra.v[0], dra.v[1]);  // Acceleration factor
-    uniform_int_distribution<int>fast_drone(1, 24);
+    uniform_int_distribution<int>fast_drone(1, 100);
 
     for (lp=0; lp<6; lp++)
     {
@@ -2256,11 +2391,17 @@ void Add_cluster()
         drones[slot].speed = 50.0;         // Starting speed
         drones[slot].color = WHITE;
 
-        if (fast_drone(rndrock) == 12)    // Make a drone faster?
+        if (fast_drone(rndrock) < 5)    // Make a drone faster?
         {
             drones[slot].color = vec3(1.0, 0.1, 0.1);
             drones[slot].tspeed*= 2.0;
             drones[slot].accel*= 2.0;
+        }
+        else if (fast_drone(rndrock) == 50)
+        {
+            drones[slot].color = vec3(0.0, 1.0, 0.2);
+            drones[slot].tspeed*= 4.0;
+            drones[slot].accel*= 4.0;
         }
     }
 }

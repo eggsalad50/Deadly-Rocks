@@ -11,6 +11,7 @@ using namespace std;
 #include <fstream>
 #include <sstream>
 #include <time.h>
+#include <thread>
 #include <chrono>
 #include <stdarg.h>
 #include <string.h>
@@ -39,6 +40,7 @@ using namespace std;
 #include "initialize.h"
 
 extern GLFWwindow* window;
+extern FILE* Debug;
 
 extern int g_win_width;
 extern int g_win_height;
@@ -195,8 +197,7 @@ struct rock_shader2                  // For OpenGL instancing
     mat4 proj_mat;
     GLuint proj_mat_location;
     GLuint matrix_location;
-    GLuint xratio_location;
-    GLuint yratio_location;
+    GLuint ratio_location;
     GLuint depth_location;
     GLuint seed1_location;
     GLuint seed2_location;
@@ -301,6 +302,29 @@ struct impact_shader
 };
 extern impact_shader sh_impact;
 
+struct drexplode_shader
+{
+    GLuint program;
+    GLuint vao;
+    GLuint direction_vbo;
+    vec2 *direction;
+    GLuint col_vbo;
+    vec3 *col;              // Color
+    GLuint psize_vbo;
+    float *psize;
+    mat4 proj_mat;
+    GLuint proj_mat_location;
+    GLuint matrix_mat_location;
+    GLuint depth_location;
+    GLuint center_location;
+    GLuint time_locaton;
+    GLuint xratio_location;
+    GLuint yratio_location;
+    GLuint Xmax_location;
+    GLuint Ymax_location;
+};
+extern drexplode_shader sh_drexplode;
+
 struct shipexplode_shader
 {
     GLuint program;
@@ -322,9 +346,38 @@ struct shipexplode_shader
     GLuint time_locaton;
     GLuint xratio_location;
     GLuint yratio_location;
+    GLuint Xmax_location;
+    GLuint Ymax_location;
     double time;
 };
 extern shipexplode_shader sh_shipexplode;
+
+struct shipexplode2_shader
+{
+    GLuint program;
+    GLuint vao;
+    GLuint points_vbo;
+    vec2 *points;
+    GLuint direction_vbo;
+    vec2 *direction;
+    GLuint spin_vbo;
+    vec2 *spin;
+    GLuint radius_vbo;
+    float *radius;
+    mat4 proj_mat;
+    GLuint proj_mat_location;
+    GLuint matrix_mat_location;
+    GLuint color_location;
+    GLuint depth_location;
+    GLuint center_location;
+    GLuint time_locaton;
+    GLuint xratio_location;
+    GLuint yratio_location;
+    GLuint Xmax_location;
+    GLuint Ymax_location;
+    double time;
+};
+extern shipexplode2_shader sh_shipexplode2;
 
 struct ship_data
 {
@@ -479,8 +532,8 @@ extern vec3 enemy_colors[10];
 struct rock_data
 {
     bool status;
-    int stage;
-    int type;
+    int8_t stage;
+    int8_t type;
     vec3 color;
     float xpos;
     float ypos;
@@ -496,6 +549,7 @@ struct rock_data
     vec2i s_pntr;     // Holds pointer to solid rock shape
 };
 extern vector<rock_data> rocks;
+extern vector<int8_t> rstarts;
 extern vector<vec2i> rock_table;
 extern vector<vec2i> s_rock_table;
 extern vector<vec2>rck_data;      // Rock shape data
@@ -511,7 +565,6 @@ struct rock_explode_struct
     float ydir;
     vec3 color;
 };
-//extern rock_explode_struct rock_explode[MAX_ROCK_EXPLODE];
 extern vector<rock_explode_struct> rock_explode;
 extern int explosion_cnt;
 
@@ -525,7 +578,6 @@ struct mini_explode_struct
     float ydir;
     vec3 color;
 };
-//extern mini_explode_struct mini_explode[MAX_MINI_EXPLODE];
 extern vector<mini_explode_struct> mini_explode;
 
 struct impact_struct
@@ -541,11 +593,22 @@ struct impact_struct
     int rock_pntr;
     vec3 color;
 };
-//extern impact_struct impact[MAX_IMPACT];
 extern vector<impact_struct> impact;
 extern int impact_cnt;
 
-//extern vector<vec2i>rgrid[GRID_SIZE][GRID_SIZE];
+struct drexplode_struct
+{
+    bool status;
+    float time;
+    float xdrone;
+    float ydrone;
+    float xdir;
+    float ydir;
+    int rock_pntr;
+    vec3 color;
+};
+extern vector<drexplode_struct> drexplode;
+
 extern vector<vector<vector<vec2i>>>rgrid;
 
 struct circle_collide_struct
@@ -572,6 +635,8 @@ struct ship_explode_struct
     float time;
     float xpos;
     float ypos;
+    float xdir;
+    float ydir;
     vec2i code;
     vec3 color;
 };
@@ -634,6 +699,7 @@ extern double enemy_time;
 extern bool demo;
 extern bool game_over;
 extern bool controls;
+extern bool miscell;
 extern float bullet_speed;
 extern bool thrust_flag;
 extern int num_enemy;
@@ -653,6 +719,7 @@ extern bool joysticks;
 extern int custom_rock_count;
 extern vector<vec2i>phrase_pntr;
 extern int cluster_index;
+extern double Rock_spawn_timer;
 
 extern int k_rotate_left;
 extern int k_rotate_right;
@@ -662,6 +729,7 @@ extern int k_bomb;
 extern int k_shield;
 extern int k_num_players;
 extern int settings_row;
+extern int misc_row;
 extern int resolution;
 extern float reso_factor;
 extern float pre_reso_factor;
@@ -715,7 +783,7 @@ extern int Demo_ships;
 extern float Demo_bullet_delay;
 extern float Demo_bulletspeed_factor;
 extern int Player_hit_player;
-extern int Line_width;
+extern float Line_width;
 extern bool Rock_instancing;
 extern float Rock_rotation_factor;
 extern int Vsync;
@@ -733,6 +801,7 @@ extern int Max_ship_explode;
 extern int Max_impact;
 extern int Max_bullets;
 extern int Max_ebullets;
+extern double Rock_spawn_delay;
 
 extern vec3 Common_color;
 extern vec3 Fast_color;
@@ -777,6 +846,7 @@ extern ALuint rk_explode_sourceid[MAX_BR_EXPLODE];
 extern ALuint rk_explode2_sourceid[MAX_MR_EXPLODE];
 extern ALuint rk_explode3_sourceid[MAX_SMR_EXPLODE];
 extern ALuint ship_explode_sourceid[MAX_SE_EXPLODE];
+extern ALuint drexplode_sourceid[MAX_DR_EXPLODE];
 extern ALuint enemy_explode_sourceid;
 extern ALuint ship_bullet_sourceid[MAX_FIRE_SND];
 extern ALuint enemy_bullet_sourceid;
@@ -793,6 +863,7 @@ extern bool sound_thrust_flag[17];
 extern double hiscore_timer;
 extern int ship_snd_pntr;
 extern int ship_fire_pntr;
+extern int drexplode_pntr;
 
 /// Functions
 extern bool Get_settings();
@@ -833,5 +904,6 @@ extern void Bbullet_hit_rock(int b_index, int r_index, circle_line *cl);
 extern void Bullet_hit_enemy(int b_index, int e_index);
 extern void Bbullet_hit_enemy(int b_index, int e_index);
 extern void Add_cluster();
+extern void Start_drexplode(int index);
 
 #endif // MAIN_H_INCLUDED

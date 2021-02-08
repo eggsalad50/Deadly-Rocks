@@ -18,7 +18,7 @@
 // Ds = Top base drone speed       example "Ds 500.0"
 // Da = Drone acceleration range;  example "Da 0.2 0.3"
 //   
-1) Sr 2 Bb 1 En 1 Er 0 0  Dr 1  Ds 200.0  Da 0.2 0.3
+1) Sr 2      Bb 1 En 1 Er 0 0  Dr 1  Ds 200.0  Da 0.2 0.3
 2) Sr 3
 4)      Br 1              Dr 2
 6) Sr 4 Br 0                    Ds 220.0
@@ -41,3 +41,25 @@
 29) Sr 8        Fr 1
 30)             Fr 0     En 3
 31)                      En 2
+32) Sr 9                        Ds 280  Da 0.30 0.42
+33) Sr 8  Hr 1
+34) Sr 9  Hr 0  Br 1
+35) Er 2 3
+36) Sr 10  Br 0
+38) Sr 0   Br 6
+39) Sr 9   Br 0 Fr 1
+40) Sr 2  Br 2  Hr 2  Fr 2      Dr 4
+41) Sr 10  Br 0  Hr 0  Fr 1
+45) Sr 0  Hr 4                  Ds 300  Da 0.32 0.45
+46) Sr 11  Hr 0
+48) Fr 1
+49) Fr 0
+50) Sr 12   Bb 3  Er 0 3  
+51) Sr 20
+52) Sr 12     Br 2
+53) Br 0
+55) Sr 13                       Ds 350
+56)        Dr 5
+58) Sr 14
+59) Hr 2
+60) Hr 0

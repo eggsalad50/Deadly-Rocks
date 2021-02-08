@@ -1,0 +1,17 @@
+#version 410
+
+//layout(location=0) in vec2 pnt;
+layout(location=0) in vec2 direction; 
+layout(location=1) in vec2 spin;       		
+layout(location=2) in float radius;    
+
+out vec2 gdirection;
+out vec2 gspin;
+out float gradius;
+
+void main()
+{
+  gdirection = direction;
+  gspin = spin;
+  gradius = radius;
+}

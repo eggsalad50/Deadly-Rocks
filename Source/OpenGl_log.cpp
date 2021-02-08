@@ -1,7 +1,7 @@
+#include "main.h"
 #include "OpenGl_log.h"
 
 //======================================== LOG FILE FUNCTIONS ==================================
-FILE *Sdebug;
 
 bool restart_gl_log()
 {
@@ -117,6 +117,7 @@ void print_shader_info_log (GLuint shader_index)
     char log[max_length];
     glGetShaderInfoLog (shader_index, max_length, &actual_length, log);
     printf ("shader info log for GL index %u:\n%s\n", shader_index, log);
+    fprintf (Debug, "shader info log for GL index %u:\n%s\n", shader_index, log);
 }
 
 void print_programme_info_log(GLuint programme)
@@ -126,6 +127,7 @@ void print_programme_info_log(GLuint programme)
     char log[max_length];
        glGetProgramInfoLog (programme, max_length, &actual_length, log);
        printf ("Program info log for GL index %u:\n%s",programme, log);
+       fprintf (Debug, "Program info log for GL index %u:\n%s",programme, log);
 }
 
 const char* GL_type_to_string (GLenum type)
@@ -154,13 +156,17 @@ const char* GL_type_to_string (GLenum type)
 void print_all (GLuint programme)
 {
     printf("-----------------\nshader programme %i info:\n", programme);
+    fprintf(Debug, "-----------------\nshader programme %i info:\n", programme);
     int params=-1;
      glGetProgramiv(programme, GL_LINK_STATUS, &params);
     printf("GL_LINK_STATUS = %i\n", params);
+    fprintf(Debug, "GL_LINK_STATUS = %i\n", params);
      glGetProgramiv(programme, GL_ATTACHED_SHADERS, &params);
     printf("GL_ATTACHED_SHADERS = %i\n", params);
+    fprintf(Debug, "GL_ATTACHED_SHADERS = %i\n", params);
      glGetProgramiv(programme, GL_ACTIVE_ATTRIBUTES, &params);
     printf("GL_ACTIVE_ATTRIBUTES = %i\n", params);
+    fprintf(Debug, "GL_ACTIVE_ATTRIBUTES = %i\n", params);
 
     for (GLuint i=0; i<(GLuint)params; i++)
     {
@@ -178,17 +184,20 @@ void print_all (GLuint programme)
               sprintf(long_name, "%s[%i}", name, j);
               int location=glGetAttribLocation(programme, long_name);
               printf("  %i) type:%s name:%s location:%i\n", i, GL_type_to_string (type), long_name, location);
+              fprintf(Debug, "  %i) type:%s name:%s location:%i\n", i, GL_type_to_string (type), long_name, location);
            }
         }
         else
         {
             int location=glGetAttribLocation (programme, name);
             printf("  %i) type:%s name:%s location:%i\n", i, GL_type_to_string (type), name, location);
+            fprintf(Debug, "  %i) type:%s name:%s location:%i\n", i, GL_type_to_string (type), name, location);
         }
     }
     glGetProgramiv(programme, GL_ACTIVE_UNIFORMS, &params);
     printf("GL_ACTIVE_UNIFORMS = %i\n", params);
-     fprintf(Sdebug,"GL_ACTIVE_UNIFORMS = %i\n", params);
+    fprintf(Debug,"GL_ACTIVE_UNIFORMS = %i\n", params);
+
     for (GLuint i=0; i< (GLuint)params; i++)
     {
         char name[80];
@@ -205,12 +214,14 @@ void print_all (GLuint programme)
                 sprintf (long_name, "%s[%i", name, j);
                 int location=glGetUniformLocation (programme, long_name);
                 printf ("  %i) type:%s name:%s location:%i\n", i, GL_type_to_string (type), long_name, location);
+                fprintf (Debug, "  %i) type:%s name:%s location:%i\n", i, GL_type_to_string (type), long_name, location);
             }
         }
         else
         {
             int location=glGetUniformLocation (programme, name);
             printf ("  %i) type:%s name:%s location:%i\n", i, GL_type_to_string (type), name, location);
+            fprintf (Debug, "  %i) type:%s name:%s location:%i\n", i, GL_type_to_string (type), name, location);
         }
     }
 

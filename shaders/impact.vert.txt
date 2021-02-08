@@ -21,5 +21,5 @@ void main()
   vec2 pos = center + direction*time;
   pos.x*= xratio;
   pos.y*= yratio;
-  gl_Position = proj * matrix * vec4(pos, depth, 1.0);
+  gl_Position = proj * vec4(pos, depth, 1.0);
 }
