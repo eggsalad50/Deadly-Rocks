@@ -1,8 +1,9 @@
-# Deadly-Rocks
-Game based on the Atari asteroids arcade game.
-For Windows 10. Haven't tried it on earlier Window versions.
-Can use keyboard or gamepad controller.
-For keyboard, use A S keys to rotate, L for thrust, semicolon to fire.
-Keyboard and gamepad assignments can be changed in settings.
-See the README_FIRST.txt file for more info.
+# Deadly Rocks
+An arcade game based on "Atari Asteroids" and "Asteroids Deluxe" arcade game that was released back in 1979.\
+No installation needed.  Simply unzip file compressed file.\
+To run program double click on DeadlyRocks.exe or its shortcut.\
+Game starts in demo mode with options to start a new game and change game settings.\
+
+See the README_FIRST.txt file for more info.\
+
 <img src="https://github.com/eggsalad50/Deadly-Rocks/blob/main/Screenshot_3.png">
