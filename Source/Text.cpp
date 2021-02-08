@@ -67,7 +67,7 @@ void Performance_text(float frames)
 
     char c[50];
     Set_textsize(60, 90);
-    sprintf(c, "Frame rate  %0.1f  bullets %i\n", frames, ebullets.size());
+    sprintf(c, "Frame rate  %0.1f  enemy %i\n", frames, enemy.size());
     Draw_textrow(c, 1.0, g_win_height - 6.5*row_size, 0.5, vec4(WHITE, 1.0));
     glBindVertexArray(0);
 }
@@ -451,6 +451,12 @@ void Misc_settings_text(float row)
     row+= 1.5;
     sprintf(c,"Enemy speed factor: %0.1f\n", Enemy_speed_factor);
     Draw_textrow(c, lmargin, g_win_height - row*row_size, 0.5, color);
+
+    if (misc_row == 9) color = hcolor;
+    else color = tcolor;
+    row+= 1.5;
+    sprintf(c,"Rock spawn delay: %0.2f\n", Rock_spawn_delay);
+    Draw_textrow(c, lmargin, g_win_height - row*row_size, 0.5, color);
 }
 
 void Draw_credits(float row)
@@ -477,6 +483,8 @@ void Draw_credits(float row)
     Draw_phrase(OPENAL11, 26.0, g_win_height - row*row_size, 0.5, tcolor);
      row+=1.5;
     Draw_phrase(CODE_BLOCKS, 26.0, g_win_height - row*row_size, 0.5, tcolor);
+    row+=1.5;
+    Draw_phrase(AUDIO_FILE, 26.0, g_win_height - row*row_size, 0.5, tcolor);
 
     glBindVertexArray(0);
 }
@@ -868,6 +876,7 @@ void glfw_keyboard(GLFWwindow* window, int key, int scancode, int action, int mo
                         if (pship[player_menu].controller == KEYBOARD)
                         {
                             if (No_same_keys(key) && Valid_key(key)) k_rotate_left = key;
+                            pship[player_menu].rotate_left = key;
                         }
                     }
                     if (settings_row == 4)
@@ -875,6 +884,7 @@ void glfw_keyboard(GLFWwindow* window, int key, int scancode, int action, int mo
                         if (pship[player_menu].controller == KEYBOARD)
                         {
                             if (No_same_keys(key)) k_rotate_right = key;
+                            pship[player_menu].rotate_right = key;
                         }
                     }
                     if (settings_row == 5)
@@ -882,6 +892,7 @@ void glfw_keyboard(GLFWwindow* window, int key, int scancode, int action, int mo
                         if (pship[player_menu].controller == KEYBOARD)
                         {
                             if (No_same_keys(key)) k_thrust = key;
+                            pship[player_menu].thrust = key;
                         }
                     }
                     if (settings_row == 6)
@@ -889,6 +900,7 @@ void glfw_keyboard(GLFWwindow* window, int key, int scancode, int action, int mo
                         if (pship[player_menu].controller == KEYBOARD)
                         {
                             if (No_same_keys(key)) k_fire = key;
+                            pship[player_menu].fire = key;
                         }
                     }
                     if (settings_row == 7)
@@ -896,6 +908,7 @@ void glfw_keyboard(GLFWwindow* window, int key, int scancode, int action, int mo
                         if (pship[player_menu].controller == KEYBOARD)
                         {
                             if (No_same_keys(key)) k_bomb = key;
+                            pship[player_menu].bomb = key;
                         }
                     }
                     if (settings_row == 8)
@@ -903,6 +916,7 @@ void glfw_keyboard(GLFWwindow* window, int key, int scancode, int action, int mo
                         if (pship[player_menu].controller == KEYBOARD)
                         {
                             if (No_same_keys(key)) k_shield = key;
+                            pship[player_menu].shields = key;
                         }
                     }
                     if (settings_row == 9)
@@ -980,12 +994,12 @@ void glfw_keyboard(GLFWwindow* window, int key, int scancode, int action, int mo
                 if (key == GLFW_KEY_UP)
                 {
                     misc_row--;
-                    if (misc_row<0) misc_row = 8;
+                    if (misc_row<0) misc_row = 9;
                 }
                 if (key == GLFW_KEY_DOWN)
                 {
                     misc_row++;
-                    if (misc_row>8) misc_row = 0;
+                    if (misc_row>9) misc_row = 0;
                 }
                 if (misc_row == 0)
                 {
@@ -1074,6 +1088,15 @@ void glfw_keyboard(GLFWwindow* window, int key, int scancode, int action, int mo
                     {
                         Enemy_speed_factor-=10.0;
                         if (Enemy_speed_factor<10.0) Enemy_speed_factor = 10.0;
+                    }
+                }
+                if (misc_row == 9)
+                {
+                    if (key == GLFW_KEY_RIGHT) Rock_spawn_delay+= 0.05;
+                    if (key == GLFW_KEY_LEFT)
+                    {
+                        Rock_spawn_delay-= 0.05;
+                        if (Rock_spawn_delay<0.0) Rock_spawn_delay = 0.0;
                     }
                 }
 
@@ -1184,8 +1207,8 @@ void Set_to_controller(int device)
     pship[player_menu].rotate_right = GLFW_GAMEPAD_AXIS_LEFT_X;
     pship[player_menu].thrust = GLFW_GAMEPAD_AXIS_RIGHT_TRIGGER;
     pship[player_menu].fire = GLFW_GAMEPAD_BUTTON_A;
-    pship[player_menu].bomb = GLFW_GAMEPAD_BUTTON_X;
-    pship[player_menu].shields = GLFW_GAMEPAD_BUTTON_B;
+    pship[player_menu].bomb = GLFW_GAMEPAD_BUTTON_B;
+    pship[player_menu].shields = GLFW_GAMEPAD_BUTTON_X;
 }
 
 

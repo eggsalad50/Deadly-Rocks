@@ -22,5 +22,5 @@ void main()
   float y = vertex.x*sin(angle) + vertex.y*cos(angle);
   vec2 fpos = vec2(x*xratio, y*yratio);
   fpos = pos + fpos*radius;
-  gl_Position = proj * matrix * vec4(fpos, depth, 1.0);
+  gl_Position = proj * vec4(fpos, depth, 1.0);
 }

@@ -7,42 +7,60 @@ rock_shader sh_rocks;
 rockexplode_shader sh_rexplode;
 miniexplode_shader sh_miniexplode;
 shipexplode_shader sh_shipexplode;
+shipexplode2_shader sh_shipexplode2;
 shield_ship sh_shield;
 exhaust sh_exhaust;
 impact_shader sh_impact;
 rock_shader2 sh_rocks2;
 moverock_shader sh_mrock;
 drone_shader sh_drone;
+drexplode_shader sh_drexplode;
 
 string vertshader;
+string geoshader;
 string fragshader;
 string compshader;
 
 /// ********** Load and setup all the shaders **********
 bool Get_all_shaders()
 {
-     //fprintf(stderr,"Shaders IN\n");
-    if (!Get_2Dline_shader()) return false;
-    if (!Get_2Dtext_shader()) return false;   // Text shader
-    if (!Get_bullets_shader()) return false;
+    bool bad_shader = false;
+    Debug=fopen(DEBUG_FILE,"a");
+
+    if (!Get_2Dline_shader()) bad_shader = true;
+    if (!Get_2Dtext_shader()) bad_shader = true;   // Text shader
+    if (!Get_bullets_shader()) bad_shader = true;
     if (!Rock_instancing)
     {
-        if (!Get_rock_shader()) return false;
+        if (!Get_rock_shader()) bad_shader = true;
     }
-    if (!Get_rockexplode_shader()) return false;
-    if (!Get_shipexplode_shader()) return false;
-    if (!Get_shield_shader()) return false;
-    if (!Get_impact_shader()) return false;
-    if (!Get_miniexplode_shader()) return false;
-    if (!Get_exhaust_shader()) return false;
+    if (!Get_rockexplode_shader()) bad_shader = true;
+    if (!Get_shipexplode2_shader()) bad_shader = true;
+    if (!Get_shield_shader()) bad_shader = true;
+    if (!Get_impact_shader()) bad_shader = true;
+    if (!Get_miniexplode_shader()) bad_shader = true;
+    if (!Get_exhaust_shader()) bad_shader = true;
     if (Rock_instancing)
     {
-        if (!Get_rock2_shader()) return false;
+        if (!Get_rock2_shader()) bad_shader = true;
     }
-    if (!Get_drone_shader()) return false;
+    if (!Get_drone_shader()) bad_shader = true;
+    if (!Get_droneexplode_shader()) bad_shader = true;
 
-     fprintf(stderr,"\nShaders compiled and linked successfully\n");
-    return true;
+    if (bad_shader)
+    {
+        fprintf(stderr, "\nError! Shaders didn't compile and link successfully.\n");
+        fprintf(Debug, "\nError! Shaders didn't compile and link successfully.\n");
+        fclose(Debug);
+        return false;
+    }
+    else
+    {
+        fprintf(stderr,"\nShaders compiled and linked successfully\n");
+        fprintf(Debug,"\nShaders compiled and linked successfully\n");
+        fclose(Debug);
+        return true;
+    }
 }
 
 bool Compile_shaders(GLuint &program, string &vert, string &frag)
@@ -66,6 +84,7 @@ bool Compile_shaders(GLuint &program, string &vert, string &frag)
     if (GL_TRUE != params)
     {
         fprintf(stderr, "ERROR: GL vertex shader index %i did not compile: File> %s\n", vs, vert);
+        fprintf(Debug, "ERROR: GL vertex shader index %i did not compile: File> %s\n", vs, vert);
         print_shader_info_log(vs);
         success = false;
     }
@@ -78,6 +97,7 @@ bool Compile_shaders(GLuint &program, string &vert, string &frag)
     if (GL_TRUE != params)
     {
         fprintf(stderr, "ERROR: GL fragment shader index %i did not compile: File> %s\n", fs, frag);
+        fprintf(Debug, "ERROR: GL fragment shader index %i did not compile: File> %s\n", fs, frag);
         print_shader_info_log(fs);
         success = false;
     }
@@ -92,7 +112,83 @@ bool Compile_shaders(GLuint &program, string &vert, string &frag)
     glGetProgramiv(program, GL_LINK_STATUS, &params);
     if (GL_TRUE !=params)
     {
-        fprintf (stderr, "ERROR: could not link shader programme GL index %u\n", program);
+        fprintf(stderr, "ERROR: could not link shader programme GL index %u\n", program);
+        fprintf(Debug, "ERROR: could not link shader programme GL index %u\n", program);
+        print_programme_info_log(program);
+        success = false;
+    }
+    print_all(program);
+    return success;
+}
+
+bool Compile_shaders_plus_geometry(GLuint &program, string &vert, string &geo, string &frag)
+{
+    GLuint vs;
+    GLuint fs;
+    GLuint gs;
+
+    const char* vertex_shader;
+    const char* geometry_shader;
+    const char* fragment_shader;
+    bool success = true;
+
+    vertex_shader = vert.c_str();
+    fragment_shader = frag.c_str();
+    geometry_shader = geo.c_str();
+
+    // Compile vertex shader program
+    vs = glCreateShader(GL_VERTEX_SHADER);
+    glShaderSource(vs, 1, &vertex_shader, NULL);
+    glCompileShader(vs);
+    int params=-1;
+    glGetShaderiv (vs, GL_COMPILE_STATUS, &params);
+    if (GL_TRUE != params)
+    {
+        fprintf(stderr, "ERROR: GL vertex shader index %i did not compile: File> %s\n", vs, vert);
+        fprintf(Debug, "ERROR: GL vertex shader index %i did not compile: File> %s\n", vs, vert);
+        print_shader_info_log(vs);
+        success = false;
+    }
+
+    // Compile geometry shader program
+    gs = glCreateShader(GL_GEOMETRY_SHADER);
+    glShaderSource(gs, 1, &geometry_shader, NULL);
+    glCompileShader(gs);
+    glGetShaderiv (gs, GL_COMPILE_STATUS, &params);
+    if (GL_TRUE != params)
+    {
+        fprintf(stderr, "ERROR: GL geometry shader index %i did not compile: File> %s\n", gs, geo);
+        fprintf(Debug, "ERROR: GL geometry shader index %i did not compile: File> %s\n", gs, geo);
+        print_shader_info_log(gs);
+        success = false;
+    }
+
+    // Compile fragment shader program
+    fs = glCreateShader(GL_FRAGMENT_SHADER);
+    glShaderSource(fs, 1, &fragment_shader, NULL);
+    glCompileShader(fs);
+    glGetShaderiv (fs, GL_COMPILE_STATUS, &params);
+    if (GL_TRUE != params)
+    {
+        fprintf(stderr, "ERROR: GL fragment shader index %i did not compile: File> %s\n", fs, frag);
+        fprintf(Debug, "ERROR: GL fragment shader index %i did not compile: File> %s\n", fs, frag);
+        print_shader_info_log(fs);
+        success = false;
+    }
+
+    // Link vertex and shader program
+    program = glCreateProgram();
+    glAttachShader(program, fs);
+    glAttachShader(program, gs);
+    glAttachShader(program, vs);
+    glLinkProgram(program);
+
+    //Check if linked correctly.
+    glGetProgramiv(program, GL_LINK_STATUS, &params);
+    if (GL_TRUE !=params)
+    {
+        fprintf(stderr, "ERROR: could not link shader programme GL index %u\n", program);
+        fprintf(Debug, "ERROR: could not link shader programme GL index %u\n", program);
         print_programme_info_log(program);
         success = false;
     }
@@ -146,7 +242,8 @@ string readFile(const char *filePath)
     ifstream fileStream(filePath, std::ios::in);
 
     if(!fileStream.is_open()) {
-        cerr << "Could not read file " << filePath << ". File does not exist." << endl;
+        fprintf(stderr, "\nError! Could not read file \"%s\"\n\n", filePath);
+        fprintf(Debug, "\nError! Could not read file \"%s\"\n\n", filePath);
         return "";
     }
 
@@ -168,7 +265,8 @@ string readFile2(string filePath)
     ifstream fileStream(filePath, std::ios::in);
 
     if(!fileStream.is_open()) {
-        cerr << "Could not read file " << filePath << ". File does not exist." << endl;
+        fprintf(stderr, "\nError! Could not read file \"%s\"\n\n", filePath.c_str());
+        fprintf(Debug, "\nError! Could not read file \"%s\"\n\n", filePath.c_str());
         return "";
     }
 
@@ -466,72 +564,119 @@ bool Get_impact_shader()
     return true;
 }
 
-bool Get_shipexplode_shader()
+bool Get_droneexplode_shader()
 {
-    sh_shipexplode.points = new vec2[2];
-    sh_shipexplode.direction = new vec2[Ship_explode_debris * Max_ship_explode];
-    sh_shipexplode.spin = new vec2[Ship_explode_debris * Max_ship_explode];
-    sh_shipexplode.radius = new float[Ship_explode_debris * Max_ship_explode];
+    sh_drexplode.direction = new vec2[MAX_EXDRONE * DRONE_PARTICLES];
+    sh_drexplode.col = new vec3[MAX_EXDRONE * DRONE_PARTICLES];
+    sh_drexplode.psize = new float[MAX_EXDRONE * DRONE_PARTICLES];
 
-    sh_shipexplode.points[0] = vec2(-1.0, 0.0);
-    sh_shipexplode.points[1] = vec2(1.0, 0.0);
-
-    string vert = "shaders/shipexplode.vert.txt";
-    string frag = "shaders/shipexplode.frag.txt";
+    string vert = "shaders/rdexplode.vert.txt";
+    string frag = "shaders/rdexplode.frag.txt";
     vertshader = readFile2(vert);
     fragshader = readFile2(frag);
-    if (!(Compile_shaders(sh_shipexplode.program, vertshader, fragshader))) return false;
+    if (!(Compile_shaders(sh_drexplode.program, vertshader, fragshader))) return false;
 
-    glUseProgram(sh_shipexplode.program);
-    glGenVertexArrays(1, &sh_shipexplode.vao);
-    glBindVertexArray(sh_shipexplode.vao);
+    glUseProgram(sh_drexplode.program);
+    glGenVertexArrays(1, &sh_drexplode.vao);
+    glBindVertexArray(sh_drexplode.vao);
 
-    sh_shipexplode.proj_mat = ortho(0.0f, g_win_width, 0.0f, g_win_height, -1.0, 1.0);
-    sh_shipexplode.proj_mat_location = glGetUniformLocation (sh_shipexplode.program, "proj");
-     glUniformMatrix4fv (sh_shipexplode.proj_mat_location, 1, GL_FALSE, sh_shipexplode.proj_mat.m);
-    sh_shipexplode.matrix_mat_location = glGetUniformLocation (sh_shipexplode.program, "matrix");
+    sh_drexplode.proj_mat = ortho(0.0f, g_win_width, 0.0f, g_win_height, -1.0, 1.0);
+    sh_drexplode.proj_mat_location = glGetUniformLocation (sh_drexplode.program, "proj");
+     glUniformMatrix4fv (sh_drexplode.proj_mat_location, 1, GL_FALSE, sh_drexplode.proj_mat.m);
+    sh_drexplode.matrix_mat_location = glGetUniformLocation (sh_drexplode.program, "matrix");
      mat4 matrix = identity_mat4();
-     glUniformMatrix4fv (sh_shipexplode.matrix_mat_location, 1, GL_FALSE, matrix.m);
+     glUniformMatrix4fv (sh_drexplode.matrix_mat_location, 1, GL_FALSE, matrix.m);
 
-    sh_shipexplode.color_location = glGetUniformLocation (sh_shipexplode.program, "color");
-     vec4 color = vec4(LIGHT_SKY_BLUE, 1.0);
-     glUniform4fv(sh_shipexplode.color_location, 1, color.v);
-    sh_shipexplode.depth_location = glGetUniformLocation (sh_shipexplode.program, "depth");
-     glUniform1f(sh_shipexplode.depth_location, -0.5);
-    sh_shipexplode.center_location = glGetUniformLocation (sh_shipexplode.program, "center");
-    sh_shipexplode.time_locaton = glGetUniformLocation (sh_shipexplode.program, "time");
-    sh_shipexplode.xratio_location = glGetUniformLocation (sh_shipexplode.program, "xratio");
-    sh_shipexplode.yratio_location = glGetUniformLocation (sh_shipexplode.program, "yratio");
+    sh_drexplode.depth_location = glGetUniformLocation (sh_drexplode.program, "depth");
+     glUniform1f(sh_drexplode.depth_location, -0.5);
+    sh_drexplode.center_location = glGetUniformLocation (sh_drexplode.program, "center");
+    sh_drexplode.time_locaton = glGetUniformLocation (sh_drexplode.program, "time");
+    sh_drexplode.xratio_location = glGetUniformLocation (sh_drexplode.program, "xratio");
+    sh_drexplode.yratio_location = glGetUniformLocation (sh_drexplode.program, "yratio");
+    sh_drexplode.Xmax_location = glGetUniformLocation (sh_drexplode.program, "Xmax");
+    sh_drexplode.Ymax_location = glGetUniformLocation (sh_drexplode.program, "Ymax");
 
-    glGenBuffers(1, &sh_shipexplode.points_vbo);
-    glBindBuffer(GL_ARRAY_BUFFER, sh_shipexplode.points_vbo);
-    glBufferData(GL_ARRAY_BUFFER,  2 * sizeof(vec2), sh_shipexplode.points, GL_STATIC_DRAW);
+    glGenBuffers(1, &sh_drexplode.direction_vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, sh_drexplode.direction_vbo);
+    glBufferData(GL_ARRAY_BUFFER,  MAX_EXDRONE*DRONE_PARTICLES * sizeof(vec2), sh_drexplode.direction, GL_DYNAMIC_DRAW);
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, NULL);
 
-    glGenBuffers(1, &sh_shipexplode.direction_vbo);
-    glBindBuffer(GL_ARRAY_BUFFER, sh_shipexplode.direction_vbo);
-    glBufferData(GL_ARRAY_BUFFER,  Ship_explode_debris*Max_ship_explode * sizeof(vec2), sh_shipexplode.direction, GL_STATIC_DRAW);
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, NULL);
-    glVertexAttribDivisor(1, 1);
+    glGenBuffers(1, &sh_drexplode.col_vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, sh_drexplode.col_vbo);
+    glBufferData(GL_ARRAY_BUFFER,  MAX_EXDRONE*DRONE_PARTICLES * sizeof(vec3), sh_drexplode.col, GL_DYNAMIC_DRAW);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, NULL);
 
-    glGenBuffers(1, &sh_shipexplode.spin_vbo);
-    glBindBuffer(GL_ARRAY_BUFFER, sh_shipexplode.spin_vbo);
-    glBufferData(GL_ARRAY_BUFFER, Ship_explode_debris*Max_ship_explode * sizeof(vec2), sh_shipexplode.spin, GL_STATIC_DRAW);
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 0, NULL);
-    glVertexAttribDivisor(2, 1);
-
-    glGenBuffers(1, &sh_shipexplode.radius_vbo);
-    glBindBuffer(GL_ARRAY_BUFFER, sh_shipexplode.radius_vbo);
-    glBufferData(GL_ARRAY_BUFFER, Ship_explode_debris*Max_ship_explode * sizeof(float), sh_shipexplode.radius, GL_STATIC_DRAW);
-    glVertexAttribPointer(3, 1, GL_FLOAT, GL_FALSE, 0, NULL);
-    glVertexAttribDivisor(3, 1);
+    glGenBuffers(1, &sh_drexplode.psize_vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, sh_drexplode.psize_vbo);
+    glBufferData(GL_ARRAY_BUFFER,  MAX_EXDRONE*DRONE_PARTICLES * sizeof(float), sh_drexplode.psize, GL_DYNAMIC_DRAW);
+    glVertexAttribPointer(2, 1, GL_FLOAT, GL_FALSE, 0, NULL);
 
     glEnableVertexAttribArray(0);
     glEnableVertexAttribArray(1);
     glEnableVertexAttribArray(2);
-    glEnableVertexAttribArray(3);
     glBindVertexArray(0);
+    return true;
+}
 
+bool Get_shipexplode2_shader()
+{
+    sh_shipexplode2.points = new vec2[1];
+    sh_shipexplode2.direction = new vec2[Ship_explode_debris * Max_ship_explode];
+    sh_shipexplode2.spin = new vec2[Ship_explode_debris * Max_ship_explode];
+    sh_shipexplode2.radius = new float[Ship_explode_debris * Max_ship_explode];
+
+    sh_shipexplode2.points[0] = vec2(0.0, 0.0);
+
+    string vert = "shaders/shipexplode2.vert.txt";
+    string geo = "shaders/shipexplode2.geo.txt";
+    string frag = "shaders/shipexplode2.frag.txt";
+    vertshader = readFile2(vert);
+    geoshader = readFile2(geo);
+    fragshader = readFile2(frag);
+    if (!(Compile_shaders_plus_geometry(sh_shipexplode2.program, vertshader, geoshader, fragshader))) return false;
+
+    glUseProgram(sh_shipexplode2.program);
+    glGenVertexArrays(1, &sh_shipexplode2.vao);
+    glBindVertexArray(sh_shipexplode2.vao);
+
+    sh_shipexplode2.proj_mat = ortho(0.0f, g_win_width, 0.0f, g_win_height, -1.0, 1.0);
+    sh_shipexplode2.proj_mat_location = glGetUniformLocation (sh_shipexplode2.program, "proj");
+     glUniformMatrix4fv (sh_shipexplode2.proj_mat_location, 1, GL_FALSE, sh_shipexplode2.proj_mat.m);
+    sh_shipexplode2.matrix_mat_location = glGetUniformLocation (sh_shipexplode2.program, "matrix");
+     mat4 matrix = identity_mat4();
+     glUniformMatrix4fv (sh_shipexplode2.matrix_mat_location, 1, GL_FALSE, matrix.m);
+
+    sh_shipexplode2.color_location = glGetUniformLocation (sh_shipexplode2.program, "color");
+     vec4 color = vec4(LIGHT_SKY_BLUE, 1.0);
+     glUniform4fv(sh_shipexplode2.color_location, 1, color.v);
+    sh_shipexplode2.depth_location = glGetUniformLocation (sh_shipexplode2.program, "depth");
+     glUniform1f(sh_shipexplode2.depth_location, -0.5);
+    sh_shipexplode2.center_location = glGetUniformLocation (sh_shipexplode2.program, "center");
+    sh_shipexplode2.time_locaton = glGetUniformLocation (sh_shipexplode2.program, "time");
+    sh_shipexplode2.xratio_location = glGetUniformLocation (sh_shipexplode2.program, "xratio");
+    sh_shipexplode2.yratio_location = glGetUniformLocation (sh_shipexplode2.program, "yratio");
+    sh_shipexplode2.Xmax_location = glGetUniformLocation (sh_shipexplode2.program, "Xmax");
+    sh_shipexplode2.Ymax_location = glGetUniformLocation (sh_shipexplode2.program, "Ymax");
+
+    glGenBuffers(1, &sh_shipexplode2.direction_vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, sh_shipexplode2.direction_vbo);
+    glBufferData(GL_ARRAY_BUFFER,  Ship_explode_debris*Max_ship_explode * sizeof(vec2), sh_shipexplode2.direction, GL_STATIC_DRAW);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, NULL);
+
+    glGenBuffers(1, &sh_shipexplode2.spin_vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, sh_shipexplode2.spin_vbo);
+    glBufferData(GL_ARRAY_BUFFER, Ship_explode_debris*Max_ship_explode * sizeof(vec2), sh_shipexplode2.spin, GL_STATIC_DRAW);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, NULL);
+
+    glGenBuffers(1, &sh_shipexplode2.radius_vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, sh_shipexplode2.radius_vbo);
+    glBufferData(GL_ARRAY_BUFFER, Ship_explode_debris*Max_ship_explode * sizeof(float), sh_shipexplode2.radius, GL_STATIC_DRAW);
+    glVertexAttribPointer(2, 1, GL_FLOAT, GL_FALSE, 0, NULL);
+
+    glEnableVertexAttribArray(0);
+    glEnableVertexAttribArray(1);
+    glEnableVertexAttribArray(2);
+    glBindVertexArray(0);
     return true;
 }
 
@@ -637,8 +782,8 @@ bool Get_rock2_shader()
 
     sh_rocks2.depth_location = glGetUniformLocation (sh_rocks2.program, "depth");
      glUniform1f(sh_rocks2.depth_location, -0.5);
-    sh_rocks2.xratio_location = glGetUniformLocation (sh_rocks2.program, "xratio");
-    sh_rocks2.yratio_location = glGetUniformLocation (sh_rocks2.program, "yratio");
+
+    sh_rocks2.ratio_location = glGetUniformLocation (sh_rocks2.program, "ratio");
     sh_rocks2.seed1_location = glGetUniformLocation (sh_rocks2.program, "seed1");
     sh_rocks2.seed2_location = glGetUniformLocation (sh_rocks2.program, "seed2");
 

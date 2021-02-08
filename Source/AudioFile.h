@@ -457,7 +457,7 @@ bool AudioFile<T>::load (std::string filePath)
     // check the file exists
     if (! file.good())
     {
-        reportError ("ERROR: File doesn't exist or otherwise can't load file\n"  + filePath);
+        reportError ("ERROR: File doesn't exist or otherwise can't load file \""  + filePath + "\"\n");
         return false;
     }
 

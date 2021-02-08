@@ -11,8 +11,7 @@ uniform mat4 proj;
 uniform mat4 matrix;
 
 uniform float depth;
-uniform float xratio;
-uniform float yratio;
+uniform vec2 ratio;
 uniform float seed1;
 uniform float seed2;
 uniform float time;
@@ -32,16 +31,14 @@ float Rnd(vec2 cord)
 
 void main()
 {
-  vec2 fpos;
   if (alive>0)
   {
     colour = color;
-    float x = vertex.x*cos(angle) - vertex.y*sin(angle);
-    float y = vertex.x*sin(angle) + vertex.y*cos(angle);
-    fpos = vec2(x*xratio, y*yratio) * (radius * Rnd(vec2(vertex.x+ float(gl_InstanceID), vertex.y+float(gl_InstanceID))));
-    float xadd = pos.x * xratio;
-    float yadd = pos.y * yratio;
-    fpos+= vec2(xadd, yadd);
-    gl_Position = proj * matrix * vec4(fpos, depth, 1.0);
+    float sintheta = sin(angle);
+    float costheta = cos(angle);
+    vec2 xy = vec2(vertex.x*costheta - vertex.y*sintheta, vertex.x*sintheta + vertex.y*costheta);
+    vec2 fpos = xy*ratio * (radius * Rnd(vec2(vertex.x+ float(gl_InstanceID), vertex.y+float(gl_InstanceID))));
+    fpos+= pos*ratio;                 
+    gl_Position = proj * vec4(fpos, depth, 1.0);
   }
 }

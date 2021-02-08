@@ -11,5 +11,6 @@ void Update_bullets();
 void Update_bomb_bullets();
 void Update_enemy_bullets();
 void Update_drones();
+void Draw_drone_explosions();
 
 #endif // UPDATE_H_INCLUDED
