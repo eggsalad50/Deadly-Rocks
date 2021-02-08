@@ -1,6 +1,7 @@
 DEADLY ROCKS
 F1 to start
-F2 Settings
+F2 Main Settings
+F3 Misc. Settings
 Programmed by Joel Patterson
 Programming Tools
 GNU C++
@@ -8,6 +9,7 @@ OpenGL 4.6
 GLFW 3.2
 OpenAL 1.1
 Code::Blocks 17.12
+AudioFile
 Ranks you can achieve
 SR
 Spaceman Recruit
